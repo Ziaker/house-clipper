@@ -10,7 +10,7 @@ BASE_DIR = Path(__file__).resolve().parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-from backend.app import app
+from backend.local_api import app
 
 def find_free_port(start_port=8520):
     port = start_port

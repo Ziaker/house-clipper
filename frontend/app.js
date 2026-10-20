@@ -1,4 +1,4 @@
-// House Clipper - Frontend Controller (v1.1.0)
+// House Clipper - Frontend Controller (v1.2.0)
 let ytPlayer = null;
 let ytPlayerReady = false;
 let currentVideoDuration = 0;
@@ -21,6 +21,9 @@ const sliderRangeText = document.getElementById("slider-range-text");
 const timelineSelectionBar = document.getElementById("timeline-selection-bar");
 const timelinePlayhead = document.getElementById("timeline-playhead");
 const minuteRuler = document.getElementById("minute-ruler");
+
+const hoverTimeBubble = document.getElementById("hover-time-bubble");
+const hoverVerticalLine = document.getElementById("hover-vertical-line");
 
 document.addEventListener("DOMContentLoaded", () => {
   lucide.createIcons();
@@ -60,7 +63,6 @@ async function checkBackendConnection() {
     }
   } catch (e) {}
 
-  // Modo Web (GitHub Pages)
   hasBackend = false;
   if (indicator) {
     indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span> Modo Web Pages`;
@@ -71,7 +73,6 @@ async function checkBackendConnection() {
     envBadge.className = "text-[10px] uppercase font-bold px-2 py-0.5 rounded-md bg-sky-500/20 text-sky-300 border border-sky-500/40";
   }
 
-  // No modo Pages, esconde botões exclusivos de arquivo local do Windows
   const headerFolderBtn = document.getElementById("header-folder-btn");
   if (headerFolderBtn) headerFolderBtn.style.display = "none";
   const notepadBtn = document.getElementById("btn-open-cookies-notepad");
@@ -167,6 +168,78 @@ function formatTimeString(totalSec) {
   const { minutes, seconds } = secondsToMinutesAndSeconds(totalSec);
   const pad = (n) => String(n).padStart(2, "0");
   return `${pad(minutes)}:${pad(seconds)}`;
+}
+
+// ============================================
+// CONTROLE DE VELOCIDADE DE REPRODUÇÃO (QoL 10)
+// ============================================
+function setPlayerSpeed(rate) {
+  if (!ytPlayer || !ytPlayer.setPlaybackRate) return;
+  ytPlayer.setPlaybackRate(rate);
+  
+  const speeds = [1.0, 1.25, 1.5, 2.0];
+  const ids = ["spd-10", "spd-125", "spd-15", "spd-20"];
+  speeds.forEach((s, idx) => {
+    const el = document.getElementById(ids[idx]);
+    if (!el) return;
+    if (s === rate) {
+      el.classList.add("active");
+    } else {
+      el.classList.remove("active");
+    }
+  });
+}
+
+// ============================================
+// MÁSCARA VISUAL DE ENQUADRAMENTO (QoL Visual 2)
+// ============================================
+function toggleOverlayGuide(type) {
+  const g916 = document.getElementById("overlay-guide-916");
+  const g11 = document.getElementById("overlay-guide-11");
+  const btn916 = document.getElementById("btn-guide-916");
+  const btn11 = document.getElementById("btn-guide-11");
+
+  if (type === "916") {
+    const isHidden = g916.classList.contains("hidden");
+    g916.classList.toggle("hidden");
+    g11.classList.add("hidden");
+    btn916.classList.toggle("bg-amber-500", isHidden);
+    btn916.classList.toggle("text-black", isHidden);
+    btn11.classList.remove("bg-amber-500", "text-black");
+  } else if (type === "11") {
+    const isHidden = g11.classList.contains("hidden");
+    g11.classList.toggle("hidden");
+    g916.classList.add("hidden");
+    btn11.classList.toggle("bg-amber-500", isHidden);
+    btn11.classList.toggle("text-black", isHidden);
+    btn916.classList.remove("bg-amber-500", "text-black");
+  }
+}
+
+// ============================================
+// BALÃO FLUTUANTE DE MINUTO NA TIMELINE (QoL Visual 1)
+// ============================================
+function onTimelineHover(e) {
+  if (currentVideoDuration <= 0) return;
+  const container = document.getElementById("timeline-interactive-container");
+  const rect = container.getBoundingClientRect();
+  const mouseX = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+  const percent = mouseX / rect.width;
+  const hoverSec = percent * currentVideoDuration;
+
+  if (hoverTimeBubble && hoverVerticalLine) {
+    hoverTimeBubble.classList.remove("hidden");
+    hoverVerticalLine.classList.remove("hidden");
+
+    hoverTimeBubble.style.left = `${mouseX}px`;
+    hoverTimeBubble.innerText = `⏱️ ${formatTimeString(hoverSec)}`;
+    hoverVerticalLine.style.left = `${mouseX}px`;
+  }
+}
+
+function onTimelineLeave() {
+  if (hoverTimeBubble) hoverTimeBubble.classList.add("hidden");
+  if (hoverVerticalLine) hoverVerticalLine.classList.add("hidden");
 }
 
 // Inicialização YouTube Player
@@ -408,7 +481,7 @@ function previewClip() {
   ytPlayer.playVideo();
 }
 
-// Carregar Vídeo do YouTube (Funciona com backend local e no GitHub Pages)
+// Carregar Vídeo do YouTube
 async function loadClipVideo() {
   const urlInput = document.getElementById("clip-url-input");
   const url = urlInput.value.trim();
@@ -434,7 +507,6 @@ async function loadClipVideo() {
     
     initOrUpdatePlayer(videoId);
 
-    // Se tiver backend local, obtém dados completos
     if (hasBackend) {
       try {
         const res = await fetch("/api/info", {
@@ -462,7 +534,6 @@ async function loadClipVideo() {
       } catch (e) {}
     }
 
-    // Fallback para GitHub Pages: usa oEmbed público oficial do YouTube (Zero Backend)
     try {
       const oembedRes = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
       if (oembedRes.ok) {
@@ -503,7 +574,7 @@ function renderChapters(chapters) {
   });
 }
 
-// Iniciar Download do Clipe
+// Iniciar Download do Clipe (Com suporte a 9:16, GIF, Loudness e Legendas)
 async function startClipping() {
   if (!currentVideoUrl) {
     alert("Carregue um vídeo do YouTube primeiro!");
@@ -518,13 +589,18 @@ async function startClipping() {
     return;
   }
 
-  const isAudio = document.getElementById("clip-format").value === "audio";
+  const formatChoice = document.getElementById("clip-format").value;
+  const isAudio = formatChoice === "audio";
+  const isVertical = formatChoice === "vertical";
+  const isGif = formatChoice === "gif";
+
   const quality = document.getElementById("clip-quality").value;
   const customTitle = document.getElementById("clip-custom-title").value.trim();
+  const normalizeAudio = document.getElementById("chk-loudness").checked;
+  const embedSubtitles = document.getElementById("chk-subtitles").checked;
 
-  // Se não estiver conectado ao backend local (Modo GitHub Pages)
   if (!hasBackend) {
-    openWebModalForClip(currentVideoUrl, start, end, isAudio);
+    openWebModalForClip(currentVideoUrl, start, end, isAudio, isVertical, isGif);
     return;
   }
 
@@ -542,6 +618,10 @@ async function startClipping() {
         end_time: end,
         quality: quality,
         is_audio: isAudio,
+        is_vertical: isVertical,
+        is_gif: isGif,
+        normalize_audio: normalizeAudio,
+        embed_subtitles: embedSubtitles,
         title: customTitle || null
       })
     });
@@ -549,12 +629,15 @@ async function startClipping() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || "Erro ao solicitar corte.");
 
-    showTaskCard("✂️ Baixando apenas o clipe...");
+    let taskDesc = "✂️ Baixando clipe...";
+    if (isVertical) taskDesc = "📱 Gerando clipe vertical 9:16...";
+    else if (isGif) taskDesc = "🎞️ Renderizando GIF animado...";
+
+    showTaskCard(taskDesc);
     trackTask(data.task_id);
 
   } catch (err) {
-    // Se a requisição local falhar, abre o modal web
-    openWebModalForClip(currentVideoUrl, start, end, isAudio);
+    openWebModalForClip(currentVideoUrl, start, end, isAudio, isVertical, isGif);
   } finally {
     btn.disabled = false;
     btn.classList.remove("opacity-60");
@@ -564,29 +647,28 @@ async function startClipping() {
 // ============================================
 // MODAL DE DOWNLOAD NO MODO WEB (GITHUB PAGES)
 // ============================================
-function openWebModalForClip(url, startSec, endSec, isAudio) {
+function openWebModalForClip(url, startSec, endSec, isAudio, isVertical, isGif) {
   const modal = document.getElementById("web-download-modal");
   modal.classList.remove("hidden");
 
   const startStr = formatTimeString(startSec);
   const endStr = formatTimeString(endSec);
 
-  // Gera o comando yt-dlp exato para o recorte
-  const formatArg = isAudio ? "-x --audio-format mp3" : "-f mp4";
+  let formatArg = "-f mp4";
+  if (isAudio) formatArg = "-x --audio-format mp3";
+  else if (isGif) formatArg = "-f mp4"; // yt-dlp baixa o vídeo base
+
   const cmd = `yt-dlp --download-sections "*${startStr}-${endStr}" --force-keyframes-at-cuts ${formatArg} "${url}"`;
-  
   document.getElementById("modal-ytdlp-cmd").value = cmd;
 
-  // Link para o Cobalt Tools
-  const cobaltUrl = `https://cobalt.tools/`;
-  document.getElementById("modal-web-cobalt").href = cobaltUrl;
+  document.getElementById("modal-web-cobalt").href = `https://cobalt.tools/`;
 }
 
 function copyYtDlpCmd() {
   const input = document.getElementById("modal-ytdlp-cmd");
   input.select();
   navigator.clipboard.writeText(input.value).then(() => {
-    alert("✅ Comando copiado! Basta colar no seu terminal/PowerShell para baixar o clipe.");
+    alert("✅ Comando copiado! Cole no seu terminal/PowerShell para baixar.");
   });
 }
 
@@ -626,7 +708,6 @@ async function loadFullVideo() {
       }
     }
 
-    // Modo Web Pages (Fallback com oEmbed)
     const isYouTube = url.includes("youtu");
     const isTwitter = url.includes("twitter.com") || url.includes("x.com");
 
@@ -696,6 +777,7 @@ async function startFullDownload() {
 
   const isAudio = document.getElementById("full-format-select").value === "audio";
   const quality = document.getElementById("full-quality-select").value;
+  const normalizeAudio = document.getElementById("chk-loudness-full").checked;
 
   if (!hasBackend) {
     const modal = document.getElementById("web-download-modal");
@@ -717,7 +799,8 @@ async function startFullDownload() {
       body: JSON.stringify({
         url: currentFullVideoData.url,
         quality: quality,
-        is_audio: isAudio
+        is_audio: isAudio,
+        normalize_audio: normalizeAudio
       })
     });
 
@@ -736,8 +819,23 @@ async function startFullDownload() {
 }
 
 function toggleQualitySelect() {
-  const isAudio = document.getElementById("clip-format").value === "audio";
-  document.getElementById("clip-quality-container").style.display = isAudio ? "none" : "block";
+  const format = document.getElementById("clip-format").value;
+  const isAudio = format === "audio";
+  const isGif = format === "gif";
+  const isVertical = format === "vertical";
+
+  document.getElementById("clip-quality-container").style.display = (isAudio || isGif) ? "none" : "block";
+  
+  // Atualiza texto do botão
+  const btnText = document.getElementById("btn-download-clip-text");
+  if (isVertical) btnText.innerText = "📱 Baixar Clipe Vertical 9:16";
+  else if (isGif) btnText.innerText = "🎞️ Gerar GIF Animado";
+  else if (isAudio) btnText.innerText = "🎵 Baixar Áudio MP3 do Clipe";
+  else btnText.innerText = "Baixar Apenas Este Clipe";
+
+  // Desativa legenda em áudio ou GIF
+  const lblSub = document.getElementById("lbl-subtitles");
+  if (lblSub) lblSub.style.display = (isAudio || isGif) ? "none" : "flex";
 }
 
 function toggleFullQualitySelect() {
@@ -853,7 +951,6 @@ function toggleCookiesModal() {
 async function saveCookiesFromModal() {
   const text = document.getElementById("cookies-json-textarea").value.trim();
   if (!hasBackend) {
-    // No modo Pages, salva no localStorage para referência
     localStorage.setItem("house_clipper_cookies_backup", text);
     alert("✅ Cookies salvos no navegador para sua sessão web!");
     toggleCookiesModal();
@@ -877,7 +974,7 @@ async function saveCookiesFromModal() {
 }
 
 // ============================================
-// HISTÓRICO & CONFIGURAÇÕES
+// HISTÓRICO & DRAG & DROP (QoL 8)
 // ============================================
 async function loadConfig() {
   if (!hasBackend) return;
@@ -950,10 +1047,22 @@ async function loadHistory() {
     container.innerHTML = history.map(item => {
       const sizeMB = item.file_size ? (item.file_size / (1024 * 1024)).toFixed(1) + " MB" : "Salvo";
       const isClip = item.type === "clip";
-      const icon = isClip ? "scissors" : "video";
+      const isGif = item.subtype === "GIF Animado";
+      const isVertical = item.subtype === "Vídeo 9:16";
+
+      let icon = "scissors";
+      if (isGif) icon = "film";
+      else if (isVertical) icon = "smartphone";
+      else if (!isClip) icon = "video";
+
+      const badgeLabel = item.subtype || (item.is_audio ? "Áudio MP3" : "Vídeo MP4");
 
       return `
-        <div class="p-3 hover:bg-[#1f180e] rounded-xl transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 group">
+        <div class="p-3 hover:bg-[#1f180e] rounded-xl transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 group draggable-clip-card"
+             draggable="true" 
+             ondragstart="onClipDragStart(event, '${item.file_path.replace(/\\/g, "/")}')"
+             title="Arraste para Discord, WhatsApp ou Premiere">
+          
           <div class="flex items-center gap-3 min-w-0">
             <div class="w-10 h-10 rounded-xl bg-[#0c0a07] border border-[#382b17] flex items-center justify-center shrink-0">
               <i data-lucide="${icon}" class="w-5 h-5 text-amber-400"></i>
@@ -967,7 +1076,7 @@ async function loadHistory() {
                 <span>•</span>
                 <span>${sizeMB}</span>
                 <span>•</span>
-                <span class="capitalize">${item.is_audio ? "Áudio MP3" : "Vídeo MP4"}</span>
+                <span class="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 text-[10px] font-bold">${badgeLabel}</span>
               </div>
             </div>
           </div>
@@ -991,6 +1100,13 @@ async function loadHistory() {
   } catch (e) {
     console.error("Erro ao carregar histórico:", e);
   }
+}
+
+// Drag & drop direto para o Discord, Telegram, WhatsApp Web e Explorer
+function onClipDragStart(e, filePath) {
+  e.dataTransfer.effectAllowed = "copy";
+  e.dataTransfer.setData("text/plain", filePath);
+  e.dataTransfer.setData("DownloadURL", `application/octet-stream:${filePath.split('/').pop()}:file://${filePath}`);
 }
 
 async function deleteHistory(id) {

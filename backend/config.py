@@ -1,67 +1,62 @@
-import os
 import json
+import os
+import tempfile
+import threading
 from pathlib import Path
 
-# Diretório padrão para downloads House Clipper
-DEFAULT_DOWNLOAD_DIR = str(Path.home() / "Downloads" / "HouseClipper")
-CONFIG_FILE = Path(__file__).resolve().parent.parent / "config.json"
-HISTORY_FILE = Path(__file__).resolve().parent.parent / "history.json"
+DEFAULT_DOWNLOAD_DIR = str(Path.home() / 'Downloads' / 'HouseClipper')
+ROOT = Path(__file__).resolve().parent.parent
+CONFIG_FILE = ROOT / 'config.json'
+HISTORY_FILE = ROOT / 'history.json'
+STORAGE_LOCK = threading.RLock()
+
+
+def atomic_json(path, data):
+    path = Path(path)
+    with STORAGE_LOCK:
+        fd, temporary = tempfile.mkstemp(dir=path.parent, suffix='.tmp')
+        try:
+            with os.fdopen(fd, 'w', encoding='utf-8') as stream:
+                json.dump(data, stream, ensure_ascii=False, indent=2)
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.replace(temporary, path)
+        finally:
+            if os.path.exists(temporary):
+                os.unlink(temporary)
+
+
+def read_json(path, default):
+    with STORAGE_LOCK:
+        if not Path(path).exists():
+            return default
+        with open(path, encoding='utf-8') as stream:
+            return json.load(stream)
+
 
 def get_config():
-    if not os.path.exists(DEFAULT_DOWNLOAD_DIR):
-        try:
-            os.makedirs(DEFAULT_DOWNLOAD_DIR, exist_ok=True)
-        except Exception:
-            pass
+    return {'download_dir': DEFAULT_DOWNLOAD_DIR, 'theme': 'burnt_yellow',
+            'default_quality': 'best', **read_json(CONFIG_FILE, {})}
 
-    config = {
-        "download_dir": DEFAULT_DOWNLOAD_DIR,
-        "theme": "burnt_yellow",
-        "default_quality": "best"
-    }
-    if CONFIG_FILE.exists():
-        try:
-            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                saved = json.load(f)
-                config.update(saved)
-        except Exception:
-            pass
-    return config
 
-def save_config(new_config: dict):
-    config = get_config()
-    config.update(new_config)
-    try:
-        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-            json.dump(config, f, indent=2, ensure_ascii=False)
-    except Exception as e:
-        print("Erro salvando config:", e)
-    return config
+def save_config(new_config):
+    with STORAGE_LOCK:
+        config = {**get_config(), **new_config}
+        atomic_json(CONFIG_FILE, config)
+        return config
+
 
 def get_history():
-    if HISTORY_FILE.exists():
-        try:
-            with open(HISTORY_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return []
-    return []
+    return read_json(HISTORY_FILE, [])
 
-def add_history_item(item: dict):
-    history = get_history()
-    history.insert(0, item)
-    history = history[:100]
-    try:
-        with open(HISTORY_FILE, "w", encoding="utf-8") as f:
-            json.dump(history, f, indent=2, ensure_ascii=False)
-    except Exception as e:
-        print("Erro salvando history:", e)
 
-def remove_history_item(item_id: str):
-    history = get_history()
-    history = [item for item in history if item.get("id") != item_id]
-    try:
-        with open(HISTORY_FILE, "w", encoding="utf-8") as f:
-            json.dump(history, f, indent=2, ensure_ascii=False)
-    except Exception as e:
-        print("Erro removendo item history:", e)
+def add_history_item(item):
+    with STORAGE_LOCK:
+        history = get_history()
+        history.insert(0, item)
+        atomic_json(HISTORY_FILE, history[:1000])
+
+
+def remove_history_item(item_id):
+    with STORAGE_LOCK:
+        atomic_json(HISTORY_FILE, [x for x in get_history() if x.get('id') != item_id])

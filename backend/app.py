@@ -38,12 +38,17 @@ class ClipRequest(BaseModel):
     title: Optional[str] = None
     quality: str = "best"
     is_audio: bool = False
+    is_vertical: bool = False
+    is_gif: bool = False
+    normalize_audio: bool = False
+    embed_subtitles: bool = False
 
 class FullDownloadRequest(BaseModel):
     url: str
     quality: str = "best"
     is_audio: bool = False
     title: Optional[str] = None
+    normalize_audio: bool = False
 
 class ConfigUpdateRequest(BaseModel):
     download_dir: Optional[str] = None
@@ -58,7 +63,7 @@ class CookiesUpdateRequest(BaseModel):
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "app": "House Clipper", "version": "v1.1.0"}
+    return {"status": "ok", "app": "House Clipper", "version": "v1.2.0"}
 
 @app.post("/api/info")
 def get_info(req: VideoInfoRequest):
@@ -80,7 +85,11 @@ def start_clip(req: ClipRequest):
             end_time=req.end_time,
             custom_title=req.title,
             quality=req.quality,
-            is_audio_only=req.is_audio
+            is_audio_only=req.is_audio,
+            is_vertical=req.is_vertical,
+            is_gif=req.is_gif,
+            normalize_audio=req.normalize_audio,
+            embed_subtitles=req.embed_subtitles
         )
         return {"task_id": task_id, "status": "queued"}
     except Exception as e:
@@ -93,7 +102,8 @@ def start_full_download(req: FullDownloadRequest):
             url=req.url,
             quality=req.quality,
             is_audio_only=req.is_audio,
-            custom_title=req.title
+            custom_title=req.title,
+            normalize_audio=req.normalize_audio
         )
         return {"task_id": task_id, "status": "queued"}
     except Exception as e:
@@ -228,9 +238,7 @@ def open_file(req: OpenFileRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Suporta servir arquivos estáticos tanto da raiz quanto da pasta frontend
 root_dir = Path(__file__).resolve().parent.parent
 frontend_dir = root_dir / "frontend"
-
 static_path = str(root_dir) if (root_dir / "index.html").exists() else str(frontend_dir)
 app.mount("/", StaticFiles(directory=static_path, html=True), name="frontend")

@@ -25,3 +25,7 @@ config.json
 *.log
 .vscode/
 .idea/
+
+# Credenciais locais e caches de testes
+cookies.json
+.pytest_cache/

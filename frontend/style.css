@@ -1,4 +1,4 @@
-/* House Clipper - Estilos Personalizados (v1.1.0) */
+/* House Clipper - Estilos Personalizados (v1.2.0) */
 
 :root {
   --bg-main: #0b0906;
@@ -57,16 +57,6 @@ body.theme-dark-amber .minute-pill:hover {
   background: #92400e !important;
   color: #ffffff !important;
   border-color: #b45309 !important;
-}
-
-body.theme-dark-amber .from-amber-600 {
-  --tw-gradient-from: #92400e var(--tw-gradient-from-position) !important;
-}
-body.theme-dark-amber .to-amber-600 {
-  --tw-gradient-to: #78350f var(--tw-gradient-to-position) !important;
-}
-body.theme-dark-amber .via-amber-500 {
-  --tw-gradient-stops: var(--tw-gradient-from), #b45309 var(--tw-gradient-via-position), var(--tw-gradient-to) !important;
 }
 
 /* Custom Scrollbar Amarelo Queimado */
@@ -168,6 +158,25 @@ body.theme-dark-amber .tab-btn.active {
   border-color: #fbbf24;
 }
 
+/* Botões de Velocidade de Reprodução */
+.speed-btn {
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  background: #1c160c;
+  border: 1px solid #382b17;
+  color: #fbbf24;
+  transition: all 0.15s ease;
+}
+
+.speed-btn:hover, .speed-btn.active {
+  background: #f59e0b;
+  color: #000000;
+  border-color: #f59e0b;
+}
+
 /* Botões de Capítulos */
 .chapter-btn {
   padding: 5px 10px;
@@ -184,6 +193,86 @@ body.theme-dark-amber .tab-btn.active {
   background: #2b2011;
   border-color: #d97706;
   color: #ffffff;
+}
+
+/* Animação Shimmer Dourado na Barra de Progresso */
+@keyframes shimmerGlow {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+.progress-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: shimmerGlow 1.8s infinite;
+}
+
+/* Balão Flutuante de Minuto (Hover Time Bubble) */
+#hover-time-bubble {
+  position: absolute;
+  bottom: 110%;
+  transform: translateX(-50%);
+  background: #d97706;
+  color: #000000;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  border: 1px solid #fbbf24;
+  z-index: 30;
+  transition: opacity 0.1s ease;
+}
+
+#hover-time-bubble::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 4px;
+  border-style: solid;
+  border-color: #d97706 transparent transparent transparent;
+}
+
+#hover-vertical-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: rgba(245, 158, 11, 0.8);
+  pointer-events: none;
+  z-index: 25;
+}
+
+/* Onda Sonora Visual (Waveform Aesthetic) */
+.waveform-bg {
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(217, 119, 6, 0.15) 0px,
+    rgba(217, 119, 6, 0.15) 2px,
+    transparent 2px,
+    transparent 5px
+  );
+}
+
+/* Card Draggable para Arrastar para Outros Apps */
+.draggable-clip-card {
+  cursor: grab;
+  user-select: none;
+}
+.draggable-clip-card:active {
+  cursor: grabbing;
 }
 
 @keyframes fadeIn {

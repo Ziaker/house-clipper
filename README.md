@@ -6,7 +6,7 @@
 
 [![Acessar no Navegador](https://img.shields.io/badge/🌐_Acessar_Online-GitHub_Pages-f59e0b?style=for-the-badge)](https://ziaker.github.io/house-clipper/)
 [![Baixar para Windows](https://img.shields.io/badge/💻_Baixar_App_Windows-HouseClipper.exe-2563eb?style=for-the-badge)](https://github.com/Ziaker/house-clipper/raw/main/HouseClipper.exe)
-[![Versão](https://img.shields.io/badge/Versão-v1.1.0-emerald?style=for-the-badge)](#)
+[![Versão](https://img.shields.io/badge/Versão-v1.2.0-emerald?style=for-the-badge)](#)
 [![Licença Open Source](https://img.shields.io/badge/Código_Aberto-100%25_Auditável-green?style=for-the-badge)](#)
 
 ---
@@ -33,25 +33,40 @@ O **House Clipper** foi desenvolvido seguindo as melhores práticas de transpar�
 
 ---
 
-## ✨ Principais Funcionalidades
+## ✨ Recursos de Clipagem & Novas QoLs (v1.2.0)
 
-1. **✂️ Clipagem Visual com Régua de Minutos**:
-   - Pule para qualquer minuto do vídeo com 1 clique na régua interativa (`00:00`, `01:00`, `02:00`...).
+1. **✂️ Clipagem Visual com Régua de Minutos & Balão Flutuante (Hover Time Bubble)**:
+   - Divisões clicáveis de minuto a minuto (`00:00`, `01:00`, `02:00`...).
+   - **Balão flutuante animado** e linha guia que acompanham o mouse na timeline mostrando o minuto e segundo exatos antes de você clicar.
    - Seletores diretos de minutos e segundos com ajuste fino (`-1s`, `-0.2s`, `+0.2s`, `+1s`).
-   - Botão **"Pegar Atual"** que captura o tempo em tempo real do player.
-   - Pré-visualização do corte em loop para garantir que o corte ficou exato antes de salvar.
+   - Pré-visualização do corte em loop para você ter certeza antes de baixar.
 
-2. **⚡ Download Sob Demanda (Zero Desperdício de Disco)**:
-   - Baixa exclusivamente os segundos selecionados via HTTP ranges com FFmpeg e yt-dlp, sem baixar o vídeo inteiro de centenas de megabytes.
+2. **📱 Exportação Vertical 9:16 com Fundo Desfocado (Shorts / TikTok / Reels)**:
+   - Converte vídeos 16:9 diretamente para o formato vertical de celular (1080x1920) com barras superior e inferior preenchidas com **blur suave de fundo**, pronto para postar nas redes sociais.
 
-3. **📥 Baixar Vídeos Completos (YouTube & Twitter / X)**:
-   - Baixe qualquer vídeo do YouTube ou post com vídeo do Twitter (X) em resolução máxima ou extraia diretamente o áudio em MP3.
+3. **🎞️ Gerador de GIF Animado Otimizado**:
+   - Exporte trechos curtos de 2 a 10 segundos diretamente como `.GIF` leve e nítido para enviar no Discord, Telegram ou WhatsApp.
 
-4. **🌙 Modo Noturno Amarelo Escuro (*Deep Night Amber*)**:
-   - Alterne com 1 clique entre o tema **Âmbar Dourado** e o **Noturno Escuro** com amarelo atenuado e fundo preto profundo para descanso visual.
+4. **🔊 Normalização de Áudio Inteligente (Loudness Equalizer)**:
+   - Filtro FFmpeg `loudnorm` opcional com 1 clique que equilibra trechos muito baixos ou estourados para o padrão de transmissão EBU R128.
 
-5. **🍪 Suporte a Cookies (`cookies.json`)**:
-   - Cole seus cookies facilmente via interface ou no arquivo para acessar vídeos restritos por idade ou que exigem login.
+5. **💬 Embutir Legendas Automáticas no Clipe**:
+   - Grava legendas diretamente no vídeo cortado.
+
+6. **🏎️ Controle de Velocidade no Player**:
+   - Botões rápidos (`1x`, `1.25x`, `1.5x`, `2x`) para acelerar vídeos longos e achar o momento exato em segundos.
+
+7. **📐 Máscaras de Enquadramento Visual (Overlay 9:16 e 1:1)**:
+   - Guias semitransparentes sobre o player para conferir se o enquadramento do corte vertical ou quadrado ficará centralizado.
+
+8. **📦 Arrastar e Soltar Direto para Outros Apps (Drag & Drop)**:
+   - Arraste os cards de clipes salvos no histórico diretamente para o Discord, Telegram, WhatsApp Web, Premiere ou pastas do Windows.
+
+9. **🌙 Modo Noturno Amarelo Escuro (*Deep Night Amber*)**:
+   - Alterne com 1 clique entre o tema **Âmbar Dourado** e o **Noturno Escuro** com amarelo mostarda fechado e fundo preto profundo para descanso visual.
+
+10. **🍪 Suporte a Cookies (`cookies.json`)**:
+    - Suporte a cookies em formato JSON para acessar vídeos com restrição de idade ou que exigem login.
 
 ---
 
@@ -67,11 +82,3 @@ Basta abrir o link:
 3. O aplicativo abre instantaneamente em modo janela nativa moderna com aceleração por hardware e auto-atualização contínua.
 
 *(Ou execute via terminal com `python main.py` ou clicando em `iniciar_house_clipper.bat`)*
-
----
-
-## 🛠️ Tecnologias Utilizadas
-- **Frontend**: HTML5, Tailwind CSS, Lucide Icons, YouTube IFrame Player API.
-- **Backend**: Python 3, FastAPI, Uvicorn, yt-dlp, FFmpeg.
-- **Desktop Launcher**: C# (.NET nativo do Windows), PyWebView / Edge WebView2.
-- **Hospedagem Web**: GitHub Pages & GitHub Actions.

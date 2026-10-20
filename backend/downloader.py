@@ -3,6 +3,7 @@ import re
 import json
 import time
 import uuid
+import subprocess
 import threading
 from pathlib import Path
 from typing import Dict, Any, Optional
@@ -25,7 +26,6 @@ def get_active_cookie_file() -> Optional[str]:
         if not data:
             return None
             
-        # Verifica se são apenas dados de exemplo
         if isinstance(data, list) and len(data) == 1 and data[0].get("name") == "EXEMPLO_COOKIE":
             return None
 
@@ -48,7 +48,7 @@ def get_active_cookie_file() -> Optional[str]:
                     
         return str(COOKIES_TXT_PATH)
     except Exception as e:
-        print("Aviso ao processar cookies.json:", e)
+        print("Aviso cookies:", e)
         return None
 
 def sanitize_filename(name: str) -> str:
@@ -68,7 +68,6 @@ def format_duration(seconds: Optional[float]) -> str:
     return f"{minutes:02d}:{secs:02d}"
 
 def extract_video_info(url: str) -> dict:
-    """Extrai informações do vídeo (YouTube ou Twitter/X) com cookies se houver."""
     cookie_file = get_active_cookie_file()
     
     ydl_opts = {
@@ -138,6 +137,54 @@ def extract_video_info(url: str) -> dict:
             "formats": formats
         }
 
+def process_advanced_effects(input_file: str, is_vertical: bool, normalize_audio: bool, export_gif: bool) -> str:
+    """Aplica pós-processamentos FFmpeg (9:16 com blur, GIF otimizado ou normalização de som)."""
+    base, ext = os.path.splitext(input_file)
+    
+    if export_gif:
+        out_file = base + ".gif"
+        # Filtro de paleta de 2 passos para GIF de altíssima fidelidade
+        filter_str = "fps=15,scale=480:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=128[p];[s1][p]paletteuse=dither=bayer"
+        cmd = ["ffmpeg", "-y", "-i", input_file, "-vf", filter_str, out_file]
+        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+        if os.path.exists(out_file) and out_file != input_file and os.path.exists(input_file):
+            try:
+                os.remove(input_file)
+            except Exception:
+                pass
+        return out_file
+
+    if not is_vertical and not normalize_audio:
+        return input_file
+
+    out_file = base + "_processed.mp4"
+    cmd = ["ffmpeg", "-y", "-i", input_file]
+
+    # Filtro de Vídeo: 9:16 Vertical com Fundo Desfocado
+    if is_vertical:
+        vf = "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=20:5[bg];[0:v]scale=1080:1920:force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2"
+        cmd.extend(["-vf", vf, "-c:v", "libx264", "-preset", "fast", "-crf", "22"])
+    else:
+        cmd.extend(["-c:v", "copy"])
+
+    # Filtro de Áudio: Normalização de volume inteligente (loudnorm)
+    if normalize_audio:
+        cmd.extend(["-af", "loudnorm=I=-16:TP=-1.5:LRA=11", "-c:a", "aac", "-b:a", "192k"])
+    else:
+        cmd.extend(["-c:a", "copy"])
+
+    cmd.append(out_file)
+    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+
+    if os.path.exists(out_file):
+        try:
+            os.remove(input_file)
+            os.rename(out_file, input_file)
+            return input_file
+        except Exception:
+            return out_file
+    return input_file
+
 class DownloadManager:
     @staticmethod
     def _create_progress_hook(task_id: str):
@@ -176,7 +223,7 @@ class DownloadManager:
                 task.update({
                     "status": "processing",
                     "progress": 99.5,
-                    "message": "Processando clipe final com FFmpeg..."
+                    "message": "Processando clipe e filtros com FFmpeg..."
                 })
         return hook
 
@@ -184,7 +231,11 @@ class DownloadManager:
     def start_clip_download(cls, url: str, start_time: float, end_time: float, 
                             custom_title: Optional[str] = None, 
                             quality: str = "best", 
-                            is_audio_only: bool = False) -> str:
+                            is_audio_only: bool = False,
+                            is_vertical: bool = False,
+                            is_gif: bool = False,
+                            normalize_audio: bool = False,
+                            embed_subtitles: bool = False) -> str:
         task_id = str(uuid.uuid4())
         active_tasks[task_id] = {
             "id": task_id,
@@ -228,8 +279,12 @@ class DownloadManager:
                 start_formatted = format_duration(start_time).replace(":", "-")
                 end_formatted = format_duration(end_time).replace(":", "-")
 
+                suffix = "_9x16" if is_vertical else ""
+                if is_gif:
+                    suffix = "_gif"
+
                 base_name = sanitize_filename(custom_title) if custom_title and custom_title.strip() else "%(title)s"
-                outtmpl = os.path.join(output_dir, f"{base_name}_clip_{start_formatted}_{end_formatted}.%(ext)s")
+                outtmpl = os.path.join(output_dir, f"{base_name}_clip_{start_formatted}_{end_formatted}{suffix}.%(ext)s")
 
                 cookie_file = get_active_cookie_file()
                 ydl_opts = {
@@ -245,6 +300,12 @@ class DownloadManager:
                 }
                 if cookie_file:
                     ydl_opts['cookiefile'] = cookie_file
+
+                if embed_subtitles and not is_audio_only and not is_gif:
+                    ydl_opts['writesubtitles'] = True
+                    ydl_opts['writeautomaticsub'] = True
+                    ydl_opts['subtitleslangs'] = ['pt', 'pt-BR', 'en']
+                    ydl_opts['postprocessors'] = [{'key': 'FFmpegEmbedSubtitle'}]
 
                 if is_audio_only:
                     ydl_opts['postprocessors'] = [{
@@ -268,6 +329,16 @@ class DownloadManager:
                         if os.path.exists(mp4_candidate):
                             final_filename = mp4_candidate
 
+                # Pós-processamento avançado: 9:16 Vertical, GIF ou Normalização de áudio
+                if not is_audio_only and (is_vertical or is_gif or normalize_audio):
+                    task["message"] = "Renderizando efeitos avançados (9:16 / GIF / Loudness)..."
+                    final_filename = process_advanced_effects(
+                        final_filename, 
+                        is_vertical=is_vertical, 
+                        normalize_audio=normalize_audio, 
+                        export_gif=is_gif
+                    )
+
                 file_size = os.path.getsize(final_filename) if os.path.exists(final_filename) else 0
 
                 task.update({
@@ -279,10 +350,12 @@ class DownloadManager:
                     "file_size": file_size
                 })
 
+                type_label = "GIF Animado" if is_gif else ("Vídeo 9:16" if is_vertical else "Clipe")
                 add_history_item({
                     "id": task_id,
                     "title": os.path.basename(final_filename),
                     "type": "clip",
+                    "subtype": type_label,
                     "duration": f"{format_duration(start_time)} até {format_duration(end_time)} ({int(end_time - start_time)}s)",
                     "file_path": final_filename,
                     "file_size": file_size,
@@ -306,7 +379,8 @@ class DownloadManager:
     def start_full_download(cls, url: str, 
                             quality: str = "best", 
                             is_audio_only: bool = False,
-                            custom_title: Optional[str] = None) -> str:
+                            custom_title: Optional[str] = None,
+                            normalize_audio: bool = False) -> str:
         task_id = str(uuid.uuid4())
         active_tasks[task_id] = {
             "id": task_id,
@@ -382,6 +456,9 @@ class DownloadManager:
                         mp4_candidate = os.path.splitext(final_filename)[0] + ".mp4"
                         if os.path.exists(mp4_candidate):
                             final_filename = mp4_candidate
+
+                if normalize_audio:
+                    final_filename = process_advanced_effects(final_filename, is_vertical=False, normalize_audio=True, export_gif=False)
 
                 file_size = os.path.getsize(final_filename) if os.path.exists(final_filename) else 0
 
