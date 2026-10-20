@@ -56,6 +56,10 @@ class OpenFileRequest(BaseModel):
 class CookiesUpdateRequest(BaseModel):
     cookies_json_text: str
 
+@app.get("/api/health")
+def health():
+    return {"status": "ok", "app": "House Clipper", "version": "v1.1.0"}
+
 @app.post("/api/info")
 def get_info(req: VideoInfoRequest):
     try:
@@ -128,7 +132,6 @@ def update_config(req: ConfigUpdateRequest):
 
 @app.get("/api/cookies")
 def get_cookies_info():
-    """Retorna o estado e conteúdo de cookies.json."""
     if not COOKIES_JSON_PATH.exists():
         return {"has_cookies": False, "count": 0, "raw": "[]"}
     try:
@@ -149,13 +152,11 @@ def get_cookies_info():
 
 @app.post("/api/cookies")
 def update_cookies(req: CookiesUpdateRequest):
-    """Atualiza o arquivo cookies.json."""
     try:
         parsed = json.loads(req.cookies_json_text)
         with open(COOKIES_JSON_PATH, "w", encoding="utf-8") as f:
             json.dump(parsed, f, indent=2, ensure_ascii=False)
             
-        # Revalida e gera cookies_netscape.txt
         get_active_cookie_file()
         count = len(parsed) if isinstance(parsed, list) else len(parsed.keys())
         return {"success": True, "count": count}
@@ -164,7 +165,6 @@ def update_cookies(req: CookiesUpdateRequest):
 
 @app.post("/api/open-cookies-file")
 def open_cookies_file():
-    """Abre o arquivo cookies.json no editor padrão do Windows (Notepad)."""
     if not COOKIES_JSON_PATH.exists():
         with open(COOKIES_JSON_PATH, "w", encoding="utf-8") as f:
             f.write("[]")
@@ -228,6 +228,9 @@ def open_file(req: OpenFileRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
-if frontend_dir.exists():
-    app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
+# Suporta servir arquivos estáticos tanto da raiz quanto da pasta frontend
+root_dir = Path(__file__).resolve().parent.parent
+frontend_dir = root_dir / "frontend"
+
+static_path = str(root_dir) if (root_dir / "index.html").exists() else str(frontend_dir)
+app.mount("/", StaticFiles(directory=static_path, html=True), name="frontend")

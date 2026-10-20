@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>House Clipper - Clipar & Baixar Vídeos (YouTube & X)</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            amber: {
+              400: '#fbbf24',
+              500: '#f59e0b',
+              600: '#d97706',
+              700: '#b45309',
+              800: '#92400e',
+              900: '#78350f',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body id="app-body" class="bg-[#0b0906] text-amber-50 min-h-screen flex flex-col font-sans selection:bg-amber-600 selection:text-white transition-colors duration-200">
+
+  <!-- ========================================== -->
+  <!-- HEADER COM IDENTIDADE HOUSE CLIPPER & ÍCONE -->
+  <!-- ========================================== -->
+  <header class="border-b border-[#2d2414] bg-[#120f09]/80 backdrop-blur-md sticky top-0 z-50 transition-colors">
+    <div class="max-w-6xl mx-auto px-4 h-20 flex items-center justify-between">
+      
+      <!-- Logo + Ícone: Casa Amarela Queimada com C Azul dentro -->
+      <div class="flex items-center gap-3.5">
+        <div class="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-[#f59e0b] via-[#d97706] to-[#b45309] p-0.5 shadow-lg shadow-amber-900/40 flex items-center justify-center">
+          <!-- SVG Ícone da Casa com C Azul -->
+          <svg class="w-10 h-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M50 12L15 42H26V86H74V42H85L50 12Z" fill="#18130a" stroke="#fbbf24" stroke-width="4.5" stroke-linejoin="round"/>
+            <path d="M50 17L22 42H78L50 17Z" fill="#d97706"/>
+            <path d="M62 46C59.5 43.5 56 42 51.5 42C43 42 37 48.5 37 57C37 65.5 43 72 51.5 72C56 72 59.5 70.5 62 68L57.5 63C55.8 64.5 53.8 65.5 51.5 65.5C46.8 65.5 43.5 61.8 43.5 57C43.5 52.2 46.8 48.5 51.5 48.5C53.8 48.5 55.8 49.5 57.5 51L62 46Z" 
+                  fill="#2563eb" stroke="#38bdf8" stroke-width="1.2"/>
+          </svg>
+        </div>
+
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-xl font-black tracking-tight bg-gradient-to-r from-amber-200 via-amber-400 to-amber-500 bg-clip-text text-transparent">
+              House Clipper
+            </h1>
+            <span id="env-badge" class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40">
+              PRO
+            </span>
+          </div>
+          <!-- Número de versão abaixo do nome da aplicação -->
+          <div class="flex items-center gap-1.5 mt-0.5">
+            <span class="text-[11px] font-mono font-semibold tracking-wide text-amber-400/90 bg-[#1c160c] px-2 py-0.5 rounded border border-[#382b17]">
+              v1.1.0
+            </span>
+            <span id="backend-status-indicator" class="text-[11px] text-amber-200/60 font-medium flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Conectando...
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Abas de Navegação -->
+      <nav class="flex items-center gap-1 bg-[#15110b] p-1.5 rounded-xl border border-[#2d2414]">
+        <button id="tab-clip" onclick="switchTab('clip')" class="tab-btn active px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 text-amber-200 bg-amber-600/30 border border-amber-500/40 shadow-sm">
+          <i data-lucide="scissors" class="w-4 h-4 text-amber-400"></i>
+          Clipar Vídeo
+        </button>
+        <button id="tab-full" onclick="switchTab('full')" class="tab-btn px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 text-amber-200/60 hover:text-amber-100 hover:bg-amber-950/40">
+          <i data-lucide="download" class="w-4 h-4 text-amber-400"></i>
+          Baixar Completo
+        </button>
+        <button id="tab-history" onclick="switchTab('history')" class="tab-btn px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 text-amber-200/60 hover:text-amber-100 hover:bg-amber-950/40">
+          <i data-lucide="folder-clock" class="w-4 h-4 text-amber-400"></i>
+          Meus Clipes & Cookies
+        </button>
+      </nav>
+
+      <!-- Ações: Alternador Modo Noturno Amarelo Escuro e Abrir Pasta -->
+      <div class="flex items-center gap-2">
+        <button id="btn-theme-toggle" onclick="toggleTheme()" title="Alternar Modo Noturno Escuro" 
+                class="px-3 py-2 rounded-xl text-xs font-bold bg-[#1c160c] hover:bg-[#292012] text-amber-300 border border-[#3d2f19] flex items-center gap-1.5 transition shadow-sm">
+          <i id="theme-icon" data-lucide="moon" class="w-4 h-4 text-amber-400"></i>
+          <span id="theme-text" class="hidden md:inline">Noturno Escuro</span>
+        </button>
+        <button id="header-folder-btn" onclick="openDownloadFolder()" title="Abrir pasta de downloads" class="hidden sm:flex px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#1c160c] hover:bg-[#292012] text-amber-300 border border-[#3d2f19] items-center gap-2 transition shadow-sm">
+          <i data-lucide="folder-open" class="w-4 h-4 text-amber-400"></i>
+          <span>Pasta</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Container Principal -->
+  <main class="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 space-y-6">
+
+    <!-- ============================================================== -->
+    <!-- ABA 1: CLIPAGEM ULTRA VISUAL (SEM BAIXAR O VÍDEO COMPLETO) -->
+    <!-- ============================================================== -->
+    <section id="view-clip" class="space-y-6">
+      
+      <!-- Barra de Input de Link -->
+      <div class="bg-gradient-to-b from-[#18130b] to-[#120f09] p-5 sm:p-6 rounded-2xl border border-[#332816] shadow-xl relative overflow-hidden">
+        <div class="absolute -right-16 -top-16 w-64 h-64 bg-amber-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="max-w-3xl">
+          <div class="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider mb-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+            Clipagem Visual Instantânea • Sem Baixar o Vídeo Inteiro
+          </div>
+          <h2 class="text-xl sm:text-2xl font-extrabold tracking-tight text-white mb-1.5">
+            Localize e Clipe os Minutos com Precisão Visual
+          </h2>
+          <p class="text-xs sm:text-sm text-amber-100/70 mb-4">
+            Cole a URL do YouTube. A régua de minutos e a linha do tempo interativa permitem identificar e recortar exatamente os momentos que você deseja.
+          </p>
+
+          <div class="flex flex-col sm:flex-row gap-2.5">
+            <div class="relative flex-1">
+              <i data-lucide="link" class="w-4 h-4 absolute left-3.5 top-3.5 text-amber-500/70"></i>
+              <input id="clip-url-input" type="text" placeholder="Cole o link do YouTube (ex: https://www.youtube.com/watch?v=...)" 
+                     class="w-full pl-10 pr-24 py-3 bg-[#0c0a07] border border-[#382b17] rounded-xl text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-amber-50 placeholder-amber-200/30 transition">
+              <button onclick="pasteClipboard('clip-url-input')" class="absolute right-2.5 top-2.5 px-2.5 py-1 text-xs font-medium text-amber-300 hover:text-white bg-[#1e170d] hover:bg-[#2b2112] rounded-lg border border-[#3d2f18] transition flex items-center gap-1">
+                <i data-lucide="clipboard" class="w-3 h-3 text-amber-400"></i> Colar
+              </button>
+            </div>
+            <button id="clip-load-btn" onclick="loadClipVideo()" class="px-6 py-3 bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-black font-extrabold text-sm rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-amber-600/30 active:scale-95">
+              <i data-lucide="play" class="w-4 h-4 fill-black text-black"></i>
+              Carregar Vídeo
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- WORKSPACE VISUAL DE CLIPAGEM (Aparece ao carregar o vídeo) -->
+      <div id="clip-workspace" class="hidden space-y-6">
+        
+        <!-- CARD PRINCIPAL: PLAYER + RÉGUA DE MINUTOS VISUAL INTEGRADA -->
+        <div class="bg-[#14100a] p-4 sm:p-5 rounded-2xl border border-[#332816] shadow-2xl space-y-5">
+          
+          <!-- Cabeçalho do Vídeo -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#261d10]">
+            <div>
+              <h3 id="player-video-title" class="text-base sm:text-lg font-bold text-amber-100 line-clamp-1">Carregando título...</h3>
+              <p id="player-video-author" class="text-xs text-amber-400/80 font-medium">Canal</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-amber-300/70">Duração Total:</span>
+              <span id="player-badge-duration" class="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-[#211a0f] text-amber-400 border border-[#3d2f19]">
+                00:00
+              </span>
+            </div>
+          </div>
+
+          <!-- Grade: Player do YouTube (Esquerda) + Monitor de Corte (Direita) -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+            
+            <!-- Player do YouTube (7 cols) -->
+            <div class="lg:col-span-7 space-y-3">
+              <div class="relative w-full aspect-video rounded-xl overflow-hidden bg-black border-2 border-[#382b17] shadow-inner">
+                <div id="yt-player-container" class="w-full h-full"></div>
+              </div>
+
+              <!-- Controles Rápidos de Pulo de Minutos sob o Player -->
+              <div class="bg-[#0e0c08] p-2.5 rounded-xl border border-[#2b2112] flex items-center justify-between gap-2 text-xs">
+                <div class="flex items-center gap-1.5 font-mono">
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span class="text-amber-200/70 text-[11px]">Posição Atual:</span>
+                  <strong id="player-current-time-display" class="text-amber-400 text-sm font-bold">00:00.0</strong>
+                </div>
+
+                <div class="flex items-center gap-1">
+                  <button onclick="seekRelative(-60)" title="Voltar 1 minuto" class="px-2 py-1 bg-[#1c160c] hover:bg-[#2b2112] text-amber-300 rounded border border-[#382b17] font-mono text-[11px] transition">
+                    -1 min
+                  </button>
+                  <button onclick="seekRelative(-10)" title="Voltar 10 segundos" class="px-2 py-1 bg-[#1c160c] hover:bg-[#2b2112] text-amber-300 rounded border border-[#382b17] font-mono text-[11px] transition">
+                    -10s
+                  </button>
+                  <button onclick="seekRelative(10)" title="Avançar 10 segundos" class="px-2 py-1 bg-[#1c160c] hover:bg-[#2b2112] text-amber-300 rounded border border-[#382b17] font-mono text-[11px] transition">
+                    +10s
+                  </button>
+                  <button onclick="seekRelative(60)" title="Avançar 1 minuto" class="px-2 py-1 bg-[#1c160c] hover:bg-[#2b2112] text-amber-300 rounded border border-[#382b17] font-mono text-[11px] transition">
+                    +1 min
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Painel de Ponto Inicial & Final (5 cols) -->
+            <div class="lg:col-span-5 bg-[#17130c] p-4 rounded-xl border border-[#382b17] space-y-4">
+              
+              <div class="flex items-center justify-between pb-2 border-b border-[#2b2112]">
+                <h4 class="text-xs font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+                  <i data-lucide="scissors" class="w-3.5 h-3.5 text-amber-400"></i>
+                  Corte Selecionado
+                </h4>
+                <div id="clip-duration-badge" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                  00:00 (0s)
+                </div>
+              </div>
+
+              <!-- PONTO INICIAL -->
+              <div class="bg-[#0f0c08] p-3 rounded-xl border border-[#302514] space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-amber-200">🟢 Minuto & Segundo Inicial</span>
+                  <button onclick="setStartToCurrent()" class="text-[11px] px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500 hover:text-black font-extrabold transition flex items-center gap-1">
+                    <i data-lucide="pin" class="w-3 h-3"></i> Pegar Atual
+                  </button>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                  <div class="flex-1">
+                    <label class="text-[10px] text-amber-300/60 block mb-0.5">Minutos</label>
+                    <input id="start-min-input" type="number" min="0" value="0" onchange="syncFromSeparateInputs()" 
+                           class="w-full bg-[#1b150d] border border-[#3d2f19] rounded-lg px-2 py-1.5 text-center font-mono text-sm text-amber-300 font-bold focus:outline-none focus:border-amber-500">
+                  </div>
+                  <span class="text-amber-500 font-bold text-lg pt-3">:</span>
+                  <div class="flex-1">
+                    <label class="text-[10px] text-amber-300/60 block mb-0.5">Segundos</label>
+                    <input id="start-sec-input" type="number" min="0" max="59" value="0" onchange="syncFromSeparateInputs()" 
+                           class="w-full bg-[#1b150d] border border-[#3d2f19] rounded-lg px-2 py-1.5 text-center font-mono text-sm text-amber-300 font-bold focus:outline-none focus:border-amber-500">
+                  </div>
+                </div>
+
+                <div class="flex items-center justify-between gap-1 text-[10px] pt-1">
+                  <button onclick="adjustStart(-1)" class="flex-1 py-1 bg-[#1a140d] hover:bg-[#281f14] rounded border border-[#332817] text-amber-300/80 hover:text-amber-200">-1s</button>
+                  <button onclick="adjustStart(-0.2)" class="flex-1 py-1 bg-[#1a140d] hover:bg-[#281f14] rounded border border-[#332817] text-amber-300/80 hover:text-amber-200">-0.2</button>
+                  <button onclick="adjustStart(0.2)" class="flex-1 py-1 bg-[#1a140d] hover:bg-[#281f14] rounded border border-[#332817] text-amber-300/80 hover:text-amber-200">+0.2</button>
+                  <button onclick="adjustStart(1)" class="flex-1 py-1 bg-[#1a140d] hover:bg-[#281f14] rounded border border-[#332817] text-amber-300/80 hover:text-amber-200">+1s</button>
+                </div>
+              </div>
+
+              <!-- PONTO FINAL -->
+              <div class="bg-[#0f0c08] p-3 rounded-xl border border-[#302514] space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-amber-200">🔴 Minuto & Segundo Final</span>
+                  <button onclick="setEndToCurrent()" class="text-[11px] px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500 hover:text-black font-extrabold transition flex items-center gap-1">
+                    <i data-lucide="pin" class="w-3 h-3"></i> Pegar Atual
+                  </button>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <div class="flex-1">
+                    <label class="text-[10px] text-amber-300/60 block mb-0.5">Minutos</label>
+                    <input id="end-min-input" type="number" min="0" value="0" onchange="syncFromSeparateInputs()" 
+                           class="w-full bg-[#1b150d] border border-[#3d2f19] rounded-lg px-2 py-1.5 text-center font-mono text-sm text-amber-300 font-bold focus:outline-none focus:border-amber-500">
+                  </div>
+                  <span class="text-amber-500 font-bold text-lg pt-3">:</span>
+                  <div class="flex-1">
+                    <label class="text-[10px] text-amber-300/60 block mb-0.5">Segundos</label>
+                    <input id="end-sec-input" type="number" min="0" max="59" value="30" onchange="syncFromSeparateInputs()" 
+                           class="w-full bg-[#1b150d] border border-[#3d2f19] rounded-lg px-2 py-1.5 text-center font-mono text-sm text-amber-300 font-bold focus:outline-none focus:border-amber-500">
+                  </div>
+                </div>
+
+                <div class="flex items-center justify-between gap-1 text-[10px] pt-1">
+                  <button onclick="adjustEnd(-1)" class="flex-1 py-1 bg-[#1a140d] hover:bg-[#281f14] rounded border border-[#332817] text-amber-300/80 hover:text-amber-200">-1s</button>
+                  <button onclick="adjustEnd(-0.2)" class="flex-1 py-1 bg-[#1a140d] hover:bg-[#281f14] rounded border border-[#332817] text-amber-300/80 hover:text-amber-200">-0.2</button>
+                  <button onclick="adjustEnd(0.2)" class="flex-1 py-1 bg-[#1a140d] hover:bg-[#281f14] rounded border border-[#332817] text-amber-300/80 hover:text-amber-200">+0.2</button>
+                  <button onclick="adjustEnd(1)" class="flex-1 py-1 bg-[#1a140d] hover:bg-[#281f14] rounded border border-[#332817] text-amber-300/80 hover:text-amber-200">+1s</button>
+                </div>
+              </div>
+
+              <!-- Botão de Pré-visualizar Trecho Selecionado -->
+              <button onclick="previewClip()" class="w-full py-2.5 bg-[#241c10] hover:bg-[#332717] text-amber-300 hover:text-amber-100 rounded-xl text-xs font-bold border border-amber-500/40 flex items-center justify-center gap-2 transition shadow-sm">
+                <i data-lucide="repeat" class="w-4 h-4 text-amber-400"></i>
+                <span>Assistir Apenas o Trecho Selecionado</span>
+              </button>
+
+            </div>
+
+          </div>
+
+          <!-- ========================================== -->
+          <!-- RÉGUA VISUAL DE MINUTOS E TIMELINE TRACK -->
+          <!-- ========================================== -->
+          <div class="bg-[#0e0c08] p-4 rounded-xl border border-[#332816] space-y-3">
+            
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                <i data-lucide="ruler" class="w-3.5 h-3.5 text-amber-400"></i>
+                Régua Visual de Minutos & Seleção do Corte
+              </span>
+              <span id="slider-range-text" class="text-xs font-mono font-bold text-amber-400">
+                00:00 até 00:30
+              </span>
+            </div>
+
+            <!-- Régua de Minutos Clicável -->
+            <div class="relative w-full overflow-x-auto pb-1">
+              <div id="minute-ruler" class="flex items-center gap-1.5 min-w-full py-1">
+              </div>
+            </div>
+
+            <!-- Faixa Visual de Corte (Timeline Track com Shading Amarelo Queimado) -->
+            <div class="relative w-full h-8 bg-[#18130a] rounded-lg border border-[#3d2f19] overflow-hidden flex items-center px-1">
+              <div id="timeline-selection-bar" class="absolute top-0 bottom-0 bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 opacity-40 border-l-2 border-r-2 border-amber-300 transition-all duration-75 pointer-events-none" style="left: 0%; width: 25%;"></div>
+              <div id="timeline-playhead" class="absolute top-0 bottom-0 w-0.5 bg-emerald-400 z-10 pointer-events-none" style="left: 0%;"></div>
+            </div>
+
+            <!-- Sliders Duplos -->
+            <div class="space-y-2 pt-1">
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] font-bold text-amber-400 w-12">Início:</span>
+                <input id="slider-start" type="range" min="0" max="100" step="0.5" value="0" class="w-full accent-amber-500 cursor-pointer">
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-[11px] font-bold text-amber-400 w-12">Fim:</span>
+                <input id="slider-end" type="range" min="0" max="100" step="0.5" value="30" class="w-full accent-amber-600 cursor-pointer">
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Capítulos do Vídeo (se houver) -->
+          <div id="chapters-container" class="hidden bg-[#0e0c08] p-3 rounded-xl border border-[#332816] space-y-2">
+            <span class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+              <i data-lucide="bookmark" class="w-3.5 h-3.5 text-amber-400"></i>
+              Capítulos do Vídeo (Clique para selecionar o trecho)
+            </span>
+            <div id="chapters-list" class="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+            </div>
+          </div>
+
+          <!-- Configurações de Download e Botão Final -->
+          <div class="pt-3 border-t border-[#2d2313] grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+            
+            <div class="sm:col-span-4">
+              <label class="text-xs text-amber-200/80 font-medium block mb-1">Nome do Clipe (Opcional)</label>
+              <input id="clip-custom-title" type="text" placeholder="Ex: melhor_momento" 
+                     class="w-full px-3 py-2 bg-[#0c0a07] border border-[#382b17] rounded-xl text-xs text-amber-50 placeholder-amber-300/20 focus:outline-none focus:border-amber-500">
+            </div>
+
+            <div class="sm:col-span-2">
+              <label class="text-xs text-amber-200/80 font-medium block mb-1">Formato</label>
+              <select id="clip-format" onchange="toggleQualitySelect()" class="w-full bg-[#0c0a07] border border-[#382b17] rounded-xl px-2.5 py-2 text-xs text-amber-200 focus:outline-none focus:border-amber-500">
+                <option value="video">Vídeo (MP4)</option>
+                <option value="audio">Áudio (MP3)</option>
+              </select>
+            </div>
+
+            <div id="clip-quality-container" class="sm:col-span-2">
+              <label class="text-xs text-amber-200/80 font-medium block mb-1">Qualidade</label>
+              <select id="clip-quality" class="w-full bg-[#0c0a07] border border-[#382b17] rounded-xl px-2.5 py-2 text-xs text-amber-200 focus:outline-none focus:border-amber-500">
+                <option value="best">Máxima</option>
+                <option value="1080">1080p FHD</option>
+                <option value="720">720p HD</option>
+                <option value="480">480p SD</option>
+              </select>
+            </div>
+
+            <div class="sm:col-span-4">
+              <button id="btn-download-clip" onclick="startClipping()" class="w-full py-2.5 bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-black font-black text-sm rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-amber-600/30 active:scale-98">
+                <i data-lucide="scissors" class="w-4 h-4 text-black"></i>
+                <span>Baixar Apenas Este Clipe</span>
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- ABA 2: BAIXAR VÍDEO COMPLETO (YOUTUBE & TWITTER / X) -->
+    <!-- ============================================================== -->
+    <section id="view-full" class="hidden space-y-6">
+      
+      <div class="bg-gradient-to-b from-[#18130b] to-[#120f09] p-5 sm:p-6 rounded-2xl border border-[#332816] shadow-xl relative overflow-hidden">
+        <div class="absolute -right-16 -top-16 w-64 h-64 bg-amber-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="max-w-3xl">
+          <div class="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider mb-1.5">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
+            YouTube & Twitter / X
+          </div>
+          <h2 class="text-xl sm:text-2xl font-extrabold tracking-tight text-white mb-1.5">
+            Baixar Vídeo Completo
+          </h2>
+          <p class="text-xs sm:text-sm text-amber-100/70 mb-4">
+            Cole links do YouTube ou tweets/posts do Twitter (X) com vídeo para baixar em alta qualidade ou converter para MP3.
+          </p>
+
+          <div class="flex flex-col sm:flex-row gap-2.5">
+            <div class="relative flex-1">
+              <i data-lucide="link" class="w-4 h-4 absolute left-3.5 top-3.5 text-amber-500/70"></i>
+              <input id="full-url-input" type="text" placeholder="Cole o link do YouTube ou Twitter/X (ex: https://x.com/.../status/...)" 
+                     class="w-full pl-10 pr-24 py-3 bg-[#0c0a07] border border-[#382b17] rounded-xl text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-amber-50 placeholder-amber-200/30 transition">
+              <button onclick="pasteClipboard('full-url-input')" class="absolute right-2.5 top-2.5 px-2.5 py-1 text-xs font-medium text-amber-300 hover:text-white bg-[#1e170d] hover:bg-[#2b2112] rounded-lg border border-[#3d2f18] transition flex items-center gap-1">
+                <i data-lucide="clipboard" class="w-3 h-3 text-amber-400"></i> Colar
+              </button>
+            </div>
+            <button id="full-load-btn" onclick="loadFullVideo()" class="px-6 py-3 bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-black font-extrabold text-sm rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-amber-600/30 active:scale-95">
+              <i data-lucide="search" class="w-4 h-4 text-black"></i>
+              Buscar Vídeo
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card do Vídeo Completo Detectado -->
+      <div id="full-video-card" class="hidden bg-[#14100a] border border-[#332816] rounded-2xl p-5 shadow-xl">
+        <div class="flex flex-col md:flex-row gap-6">
+          
+          <div class="w-full md:w-72 shrink-0 aspect-video rounded-xl overflow-hidden bg-black border border-[#382b17] relative group">
+            <img id="full-preview-thumb" src="" alt="Thumbnail" class="w-full h-full object-cover">
+            <div id="full-platform-badge" class="absolute top-2 left-2 px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow">
+            </div>
+            <span id="full-preview-duration" class="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/85 font-mono text-xs text-amber-300">00:00</span>
+          </div>
+
+          <div class="flex-1 flex flex-col justify-between space-y-4">
+            <div>
+              <h3 id="full-preview-title" class="text-base sm:text-lg font-bold text-amber-100 mb-1 line-clamp-2">Título do Vídeo</h3>
+              <p id="full-preview-author" class="text-xs text-amber-400/80 flex items-center gap-1.5 font-medium">
+                <i data-lucide="user" class="w-3.5 h-3.5 text-amber-500"></i> Autor
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-[#261d10]">
+              <div>
+                <label class="text-xs text-amber-200/80 mb-1 block">Formato Desejado</label>
+                <select id="full-format-select" onchange="toggleFullQualitySelect()" class="w-full bg-[#0c0a07] border border-[#382b17] rounded-xl px-3 py-2 text-xs text-amber-200 focus:outline-none focus:border-amber-500">
+                  <option value="video">Vídeo Completo (MP4)</option>
+                  <option value="audio">Apenas Áudio (MP3)</option>
+                </select>
+              </div>
+
+              <div id="full-quality-container">
+                <label class="text-xs text-amber-200/80 mb-1 block">Qualidade</label>
+                <select id="full-quality-select" class="w-full bg-[#0c0a07] border border-[#382b17] rounded-xl px-3 py-2 text-xs text-amber-200 focus:outline-none focus:border-amber-500">
+                  <option value="best">Máxima Resolução</option>
+                  <option value="1080">1080p FHD</option>
+                  <option value="720">720p HD</option>
+                  <option value="480">480p SD</option>
+                </select>
+              </div>
+            </div>
+
+            <button id="btn-download-full" onclick="startFullDownload()" class="w-full py-3 bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-400 text-black font-extrabold text-sm rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-amber-600/30 active:scale-98">
+              <i data-lucide="download" class="w-4 h-4 text-black"></i>
+              <span>Baixar Vídeo Completo Agora</span>
+            </button>
+
+          </div>
+
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- ABA 3: MEUS CLIPES, PASTA & COOKIES DE AUTENTICAÇÃO -->
+    <!-- ============================================================== -->
+    <section id="view-history" class="hidden space-y-6">
+      
+      <!-- Card da Pasta de Salvamento -->
+      <div id="folder-manager-card" class="bg-[#14100a] p-5 rounded-2xl border border-[#332816] shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div class="space-y-1">
+          <div class="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase">
+            <i data-lucide="folder" class="w-3.5 h-3.5 text-amber-400"></i> Pasta de Salvamento Local
+          </div>
+          <div id="current-folder-display" class="text-sm font-mono text-amber-200/90 break-all bg-[#0c0a07] px-3.5 py-2 rounded-xl border border-[#382b17]">
+            Carregando pasta...
+          </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <button onclick="changeDownloadFolder()" class="px-4 py-2 bg-[#1c160c] hover:bg-[#281f12] text-amber-200 rounded-xl text-xs font-bold border border-[#3d2f19] transition flex items-center gap-1.5">
+            <i data-lucide="folder-edit" class="w-4 h-4 text-amber-400"></i> Mudar Pasta
+          </button>
+          <button onclick="openDownloadFolder()" class="px-4 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-xl text-xs font-bold border border-amber-500/40 transition flex items-center gap-1.5">
+            <i data-lucide="external-link" class="w-4 h-4 text-amber-400"></i> Abrir no Explorer
+          </button>
+        </div>
+      </div>
+
+      <!-- Card de Cookies (YouTube & X) -->
+      <div class="bg-[#14100a] p-5 rounded-2xl border border-[#332816] shadow-xl space-y-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#261d10]">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-base font-bold text-amber-200 flex items-center gap-1.5">
+                🍪 Cookies de Autenticação (YouTube & Twitter/X)
+              </span>
+              <span id="cookies-status-badge" class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700">
+                Verificando...
+              </span>
+            </div>
+            <p class="text-xs text-amber-200/60 mt-1">
+              Cole seus cookies em JSON (ex: do Cookie-Editor) ou edite o arquivo <code class="text-amber-300">cookies.json</code> para liberar vídeos com restrição de idade ou evitar bloqueios.
+            </p>
+          </div>
+
+          <div class="flex items-center gap-2 shrink-0">
+            <button id="btn-open-cookies-notepad" onclick="openCookiesFileInNotepad()" class="px-3.5 py-2 bg-[#1c160c] hover:bg-[#281f12] text-amber-300 rounded-xl text-xs font-bold border border-[#3d2f19] transition flex items-center gap-1.5">
+              <i data-lucide="file-edit" class="w-4 h-4 text-amber-400"></i> Abrir no Bloco de Notas
+            </button>
+            <button onclick="toggleCookiesModal()" class="px-3.5 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-xl text-xs font-bold border border-amber-500/40 transition flex items-center gap-1.5">
+              <i data-lucide="clipboard-pen" class="w-4 h-4 text-amber-400"></i> Colar JSON
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lista de Clipes & Downloads -->
+      <div class="bg-[#14100a] rounded-2xl border border-[#332816] shadow-xl overflow-hidden">
+        <div class="p-4 border-b border-[#261d10] flex items-center justify-between">
+          <h3 class="text-sm font-bold text-amber-200 uppercase tracking-wider flex items-center gap-2">
+            <i data-lucide="history" class="w-4 h-4 text-amber-400"></i>
+            Clipes & Downloads Recentes
+          </h3>
+          <button onclick="loadHistory()" class="text-xs text-amber-400/80 hover:text-amber-200 flex items-center gap-1">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Atualizar
+          </button>
+        </div>
+
+        <div id="history-list" class="divide-y divide-[#261d10] p-2 space-y-1 min-h-[160px]">
+          <div class="text-center py-10 text-amber-200/40 text-sm">
+            Nenhum clipe salvo ainda.
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- MODAL DO MODO WEB (GITHUB PAGES) -->
+    <!-- ============================================================== -->
+    <div id="web-download-modal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div class="bg-[#14100a] border-2 border-amber-500/60 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-fade-in">
+        
+        <div class="flex items-start justify-between pb-3 border-b border-[#2d2414]">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
+              <i data-lucide="sparkles" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h3 class="text-base font-extrabold text-amber-200">
+                Opções de Download (Modo Web)
+              </h3>
+              <p class="text-xs text-amber-200/60">
+                Você está usando o House Clipper via GitHub Pages
+              </p>
+            </div>
+          </div>
+          <button onclick="toggleWebModal()" class="text-amber-400 hover:text-white p-1">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <!-- Opção 1: Comando yt-dlp exato com 1 clique -->
+        <div class="bg-[#0c0a07] p-3.5 rounded-xl border border-[#382b17] space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+              <i data-lucide="terminal" class="w-3.5 h-3.5 text-amber-400"></i>
+              Comando Rápido (yt-dlp no seu terminal)
+            </span>
+            <span class="text-[10px] text-amber-400/80 font-mono">Recomendado</span>
+          </div>
+          <p class="text-[11px] text-amber-200/60">
+            Corta exclusivamente o trecho selecionado sem baixar o vídeo inteiro:
+          </p>
+          <div class="flex items-center gap-2">
+            <input id="modal-ytdlp-cmd" type="text" readonly class="flex-1 bg-[#18130b] border border-[#3d2f19] rounded-lg px-2.5 py-1.5 font-mono text-[11px] text-amber-200 select-all focus:outline-none">
+            <button onclick="copyYtDlpCmd()" class="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-lg text-xs font-bold border border-amber-500/40 transition flex items-center gap-1 shrink-0">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar
+            </button>
+          </div>
+        </div>
+
+        <!-- Opção 2: Abrir no Serviço Web Direto -->
+        <div class="bg-[#0c0a07] p-3.5 rounded-xl border border-[#382b17] space-y-2">
+          <span class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+            <i data-lucide="globe" class="w-3.5 h-3.5 text-amber-400"></i>
+            Download Web Direto (YouTube / Twitter)
+          </span>
+          <p class="text-[11px] text-amber-200/60">
+            Acesse serviços online gratuitos com o link do vídeo já pré-carregado:
+          </p>
+          <div class="flex flex-wrap gap-2 pt-1">
+            <a id="modal-web-cobalt" href="#" target="_blank" class="flex-1 text-center py-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-black font-extrabold rounded-lg text-xs transition shadow-sm">
+              Abrir no Cobalt Web
+            </a>
+          </div>
+        </div>
+
+        <!-- Opção 3: Baixar o HouseClipper.exe para Windows -->
+        <div class="pt-2 border-t border-[#2d2414] flex items-center justify-between">
+          <span class="text-xs text-amber-200/60">Quer baixar com 1 clique direto no PC?</span>
+          <a href="https://github.com/Ziaker/house-clipper/raw/main/HouseClipper.exe" download class="px-3.5 py-1.5 bg-[#1c160c] hover:bg-[#2b2112] text-amber-300 rounded-xl text-xs font-bold border border-[#3d2f19] transition flex items-center gap-1.5">
+            <i data-lucide="download" class="w-3.5 h-3.5 text-amber-400"></i> Baixar HouseClipper.exe
+          </a>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL DE COLAR COOKIES EM JSON -->
+    <!-- ============================================================== -->
+    <div id="cookies-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="bg-[#14100a] border-2 border-amber-500/50 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-4 animate-fade-in">
+        <div class="flex items-center justify-between pb-2 border-b border-[#2d2414]">
+          <h3 class="text-sm font-bold text-amber-200 flex items-center gap-2">
+            <i data-lucide="cookie" class="w-4 h-4 text-amber-400"></i>
+            Configurar cookies.json
+          </h3>
+          <button onclick="toggleCookiesModal()" class="text-amber-400 hover:text-white">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <p class="text-xs text-amber-200/70">
+          Cole abaixo a lista de cookies exportados em JSON (formato array <code class="text-amber-400">[{"name": "...", "value": "..."}]</code>):
+        </p>
+
+        <textarea id="cookies-json-textarea" rows="8" placeholder="Cole o JSON dos cookies aqui..." 
+                  class="w-full bg-[#0c0a07] border border-[#382b17] rounded-xl p-3 font-mono text-xs text-amber-200 placeholder-amber-400/30 focus:outline-none focus:border-amber-500"></textarea>
+
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button onclick="toggleCookiesModal()" class="px-4 py-2 bg-[#1c160c] hover:bg-[#281f12] text-amber-200 rounded-xl text-xs font-bold transition">
+            Cancelar
+          </button>
+          <button onclick="saveCookiesFromModal()" class="px-5 py-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-black font-extrabold rounded-xl text-xs transition shadow-md shadow-amber-600/30">
+            Salvar Cookies
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- BARRA / MODAL DE PROGRESSO FLUTUANTE EM AMARELO QUEIMADO -->
+    <!-- ============================================================== -->
+    <div id="active-task-card" class="hidden fixed bottom-6 right-6 left-6 sm:left-auto sm:w-96 bg-[#16120b]/95 backdrop-blur-xl border-2 border-amber-500/60 rounded-2xl p-4 shadow-2xl z-50 transition-all">
+      <div class="flex items-start justify-between gap-3 mb-2">
+        <div class="flex items-center gap-2">
+          <div id="task-spinner" class="w-4 h-4 rounded-full border-2 border-amber-400 border-t-transparent animate-spin"></div>
+          <span id="task-status-title" class="text-xs font-black text-amber-200 tracking-wide">Processando clipe...</span>
+        </div>
+        <span id="task-percent-text" class="text-xs font-mono font-bold text-amber-400">0%</span>
+      </div>
+
+      <div class="w-full bg-[#0a0805] rounded-full h-2.5 overflow-hidden border border-[#382b17] mb-2">
+        <div id="task-progress-bar" class="bg-gradient-to-r from-amber-600 via-amber-400 to-yellow-300 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+      </div>
+
+      <div class="flex items-center justify-between text-[11px] text-amber-200/70 font-mono">
+        <span id="task-speed-text">Velocidade: --</span>
+        <span id="task-eta-text">Tempo rest.: --</span>
+      </div>
+
+      <div id="task-done-actions" class="hidden mt-3 pt-2 border-t border-[#2e2313] flex items-center gap-2">
+        <button id="task-btn-play" class="flex-1 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold rounded-lg text-xs flex items-center justify-center gap-1 transition">
+          <i data-lucide="play" class="w-3.5 h-3.5 fill-black"></i> Assistir
+        </button>
+        <button id="task-btn-folder" class="flex-1 py-1.5 bg-[#21190e] hover:bg-[#2d2214] text-amber-200 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition border border-[#3d2f19]">
+          <i data-lucide="folder" class="w-3.5 h-3.5 text-amber-400"></i> Ver Pasta
+        </button>
+        <button onclick="closeTaskCard()" class="p-1.5 text-amber-400/60 hover:text-amber-200">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script src="app.js"></script>
+</body>
+</html>

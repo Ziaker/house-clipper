@@ -6,6 +6,7 @@ let timeUpdateInterval = null;
 let isPreviewing = false;
 let currentPollingTaskId = null;
 let currentVideoUrl = "";
+let hasBackend = false;
 
 // Elementos DOM
 const startMinInput = document.getElementById("start-min-input");
@@ -24,10 +25,8 @@ const minuteRuler = document.getElementById("minute-ruler");
 document.addEventListener("DOMContentLoaded", () => {
   lucide.createIcons();
   setupSliders();
-  loadConfig();
-  loadHistory();
-  checkCookiesStatus();
   initTheme();
+  checkBackendConnection();
 
   document.getElementById("clip-url-input").addEventListener("keypress", (e) => {
     if (e.key === "Enter") loadClipVideo();
@@ -37,6 +36,49 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.key === "Enter") loadFullVideo();
   });
 });
+
+// ============================================
+// VERIFICAÇÃO DE AMBIENTE E BACKEND
+// ============================================
+async function checkBackendConnection() {
+  const indicator = document.getElementById("backend-status-indicator");
+  const envBadge = document.getElementById("env-badge");
+  
+  try {
+    const res = await fetch("/api/health", { method: "GET" });
+    if (res.ok) {
+      hasBackend = true;
+      if (indicator) {
+        indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span> Conectado Local`;
+        indicator.className = "text-[11px] text-emerald-400 font-semibold flex items-center gap-1.5";
+      }
+      if (envBadge) envBadge.innerText = "DESKTOP";
+      loadConfig();
+      loadHistory();
+      checkCookiesStatus();
+      return;
+    }
+  } catch (e) {}
+
+  // Modo Web (GitHub Pages)
+  hasBackend = false;
+  if (indicator) {
+    indicator.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span> Modo Web Pages`;
+    indicator.className = "text-[11px] text-amber-300 font-medium flex items-center gap-1.5";
+  }
+  if (envBadge) {
+    envBadge.innerText = "PAGES WEB";
+    envBadge.className = "text-[10px] uppercase font-bold px-2 py-0.5 rounded-md bg-sky-500/20 text-sky-300 border border-sky-500/40";
+  }
+
+  // No modo Pages, esconde botões exclusivos de arquivo local do Windows
+  const headerFolderBtn = document.getElementById("header-folder-btn");
+  if (headerFolderBtn) headerFolderBtn.style.display = "none";
+  const notepadBtn = document.getElementById("btn-open-cookies-notepad");
+  if (notepadBtn) notepadBtn.style.display = "none";
+  const currentFolderDisp = document.getElementById("current-folder-display");
+  if (currentFolderDisp) currentFolderDisp.innerText = "Modo Web Online (GitHub Pages)";
+}
 
 // ============================================
 // ALTERNADOR DE MODO NOTURNO (AMARELO BEM MAIS ESCURO)
@@ -54,14 +96,15 @@ function toggleTheme() {
   const isDarkAmber = document.body.classList.contains("theme-dark-amber");
   applyTheme(!isDarkAmber);
   
-  // Salva na API e LocalStorage
   const newTheme = !isDarkAmber ? "dark_amber" : "burnt_yellow";
   localStorage.setItem("house_clipper_theme", newTheme);
-  fetch("/api/config", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ theme: newTheme })
-  }).catch(() => {});
+  if (hasBackend) {
+    fetch("/api/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ theme: newTheme })
+    }).catch(() => {});
+  }
 }
 
 function applyTheme(isDarkAmber) {
@@ -71,15 +114,11 @@ function applyTheme(isDarkAmber) {
   if (isDarkAmber) {
     document.body.classList.add("theme-dark-amber");
     if (text) text.innerText = "Âmbar Dourado";
-    if (icon) {
-      icon.setAttribute("data-lucide", "sun");
-    }
+    if (icon) icon.setAttribute("data-lucide", "sun");
   } else {
     document.body.classList.remove("theme-dark-amber");
     if (text) text.innerText = "Noturno Escuro";
-    if (icon) {
-      icon.setAttribute("data-lucide", "moon");
-    }
+    if (icon) icon.setAttribute("data-lucide", "moon");
   }
   lucide.createIcons();
 }
@@ -101,9 +140,11 @@ function switchTab(tabName) {
   });
 
   if (tabName === "history") {
-    loadHistory();
-    loadConfig();
-    checkCookiesStatus();
+    if (hasBackend) {
+      loadHistory();
+      loadConfig();
+      checkCookiesStatus();
+    }
   }
 }
 
@@ -266,13 +307,11 @@ function setEndSeconds(totalSec) {
 function syncFromSeparateInputs() {
   const start = getStartSeconds();
   const end = getEndSeconds();
-  
   sliderStart.value = start;
   sliderEnd.value = end;
   updateTimelineSelectionVisual();
 }
 
-// Sincronização dos Sliders e Barra Visual
 function setupSliders() {
   sliderStart.addEventListener("input", () => {
     let startVal = parseFloat(sliderStart.value);
@@ -369,7 +408,7 @@ function previewClip() {
   ytPlayer.playVideo();
 }
 
-// Carregar Vídeo do YouTube
+// Carregar Vídeo do YouTube (Funciona com backend local e no GitHub Pages)
 async function loadClipVideo() {
   const urlInput = document.getElementById("clip-url-input");
   const url = urlInput.value.trim();
@@ -395,33 +434,49 @@ async function loadClipVideo() {
     
     initOrUpdatePlayer(videoId);
 
-    const res = await fetch("/api/info", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: url })
-    });
-    
-    if (res.ok) {
-      const data = await res.json();
-      document.getElementById("player-video-title").innerText = data.title || "Vídeo do YouTube";
-      document.getElementById("player-video-author").innerText = data.uploader || "Canal";
-      if (data.duration) {
-        currentVideoDuration = data.duration;
-        document.getElementById("player-badge-duration").innerText = data.duration_formatted;
-        sliderStart.max = data.duration;
-        sliderEnd.max = data.duration;
-        renderMinuteRuler(data.duration);
-        updateTimelineSelectionVisual();
-      }
-
-      if (data.chapters && data.chapters.length > 0) {
-        renderChapters(data.chapters);
-      } else {
-        document.getElementById("chapters-container").classList.add("hidden");
-      }
+    // Se tiver backend local, obtém dados completos
+    if (hasBackend) {
+      try {
+        const res = await fetch("/api/info", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: url })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById("player-video-title").innerText = data.title || "Vídeo do YouTube";
+          document.getElementById("player-video-author").innerText = data.uploader || "Canal";
+          if (data.duration) {
+            currentVideoDuration = data.duration;
+            document.getElementById("player-badge-duration").innerText = data.duration_formatted;
+            sliderStart.max = data.duration;
+            sliderEnd.max = data.duration;
+            renderMinuteRuler(data.duration);
+            updateTimelineSelectionVisual();
+          }
+          if (data.chapters && data.chapters.length > 0) {
+            renderChapters(data.chapters);
+          }
+          return;
+        }
+      } catch (e) {}
     }
+
+    // Fallback para GitHub Pages: usa oEmbed público oficial do YouTube (Zero Backend)
+    try {
+      const oembedRes = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
+      if (oembedRes.ok) {
+        const oembedData = await oembedRes.json();
+        document.getElementById("player-video-title").innerText = oembedData.title || "Vídeo do YouTube";
+        document.getElementById("player-video-author").innerText = oembedData.author_name || "Canal";
+      }
+    } catch (e) {
+      document.getElementById("player-video-title").innerText = "Vídeo do YouTube";
+      document.getElementById("player-video-author").innerText = "Carregado via Player";
+    }
+
   } catch (err) {
-    console.warn("Erro ao buscar dados do vídeo:", err);
+    console.warn("Erro ao carregar vídeo:", err);
   } finally {
     btn.innerHTML = `<i data-lucide="play" class="w-4 h-4 fill-black text-black"></i> Carregar Vídeo`;
     btn.disabled = false;
@@ -467,6 +522,12 @@ async function startClipping() {
   const quality = document.getElementById("clip-quality").value;
   const customTitle = document.getElementById("clip-custom-title").value.trim();
 
+  // Se não estiver conectado ao backend local (Modo GitHub Pages)
+  if (!hasBackend) {
+    openWebModalForClip(currentVideoUrl, start, end, isAudio);
+    return;
+  }
+
   const btn = document.getElementById("btn-download-clip");
   btn.disabled = true;
   btn.classList.add("opacity-60");
@@ -492,7 +553,8 @@ async function startClipping() {
     trackTask(data.task_id);
 
   } catch (err) {
-    alert("Erro: " + err.message);
+    // Se a requisição local falhar, abre o modal web
+    openWebModalForClip(currentVideoUrl, start, end, isAudio);
   } finally {
     btn.disabled = false;
     btn.classList.remove("opacity-60");
@@ -500,9 +562,41 @@ async function startClipping() {
 }
 
 // ============================================
+// MODAL DE DOWNLOAD NO MODO WEB (GITHUB PAGES)
+// ============================================
+function openWebModalForClip(url, startSec, endSec, isAudio) {
+  const modal = document.getElementById("web-download-modal");
+  modal.classList.remove("hidden");
+
+  const startStr = formatTimeString(startSec);
+  const endStr = formatTimeString(endSec);
+
+  // Gera o comando yt-dlp exato para o recorte
+  const formatArg = isAudio ? "-x --audio-format mp3" : "-f mp4";
+  const cmd = `yt-dlp --download-sections "*${startStr}-${endStr}" --force-keyframes-at-cuts ${formatArg} "${url}"`;
+  
+  document.getElementById("modal-ytdlp-cmd").value = cmd;
+
+  // Link para o Cobalt Tools
+  const cobaltUrl = `https://cobalt.tools/`;
+  document.getElementById("modal-web-cobalt").href = cobaltUrl;
+}
+
+function copyYtDlpCmd() {
+  const input = document.getElementById("modal-ytdlp-cmd");
+  input.select();
+  navigator.clipboard.writeText(input.value).then(() => {
+    alert("✅ Comando copiado! Basta colar no seu terminal/PowerShell para baixar o clipe.");
+  });
+}
+
+function toggleWebModal() {
+  document.getElementById("web-download-modal").classList.toggle("hidden");
+}
+
+// ============================================
 // ABA 2: DOWNLOAD COMPLETO (YT & TWITTER / X)
 // ============================================
-
 let currentFullVideoData = null;
 
 async function loadFullVideo() {
@@ -518,17 +612,50 @@ async function loadFullVideo() {
   btn.disabled = true;
 
   try {
-    const res = await fetch("/api/info", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: url })
-    });
+    if (hasBackend) {
+      const res = await fetch("/api/info", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: url })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        currentFullVideoData = data;
+        renderFullVideoCard(data);
+        return;
+      }
+    }
 
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || "Não foi possível obter dados do vídeo.");
+    // Modo Web Pages (Fallback com oEmbed)
+    const isYouTube = url.includes("youtu");
+    const isTwitter = url.includes("twitter.com") || url.includes("x.com");
 
-    currentFullVideoData = data;
-    renderFullVideoCard(data);
+    let title = "Vídeo Detectado";
+    let author = isTwitter ? "Post no Twitter/X" : "Canal do YouTube";
+    let thumb = "";
+
+    if (isYouTube) {
+      const id = extractYouTubeId(url);
+      thumb = id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : "";
+      try {
+        const oe = await fetch(`https://noembed.com/embed?url=${url}`).then(r => r.json());
+        if (oe.title) title = oe.title;
+        if (oe.author_name) author = oe.author_name;
+      } catch (e) {}
+    } else if (isTwitter) {
+      thumb = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=60";
+      title = "Vídeo do Twitter / X";
+    }
+
+    currentFullVideoData = {
+      title: title,
+      uploader: author,
+      duration_formatted: "--:--",
+      thumbnail: thumb,
+      platform: isYouTube ? "youtube" : (isTwitter ? "twitter" : "web"),
+      url: url
+    };
+    renderFullVideoCard(currentFullVideoData);
 
   } catch (err) {
     alert("Erro ao buscar dados: " + err.message);
@@ -569,6 +696,15 @@ async function startFullDownload() {
 
   const isAudio = document.getElementById("full-format-select").value === "audio";
   const quality = document.getElementById("full-quality-select").value;
+
+  if (!hasBackend) {
+    const modal = document.getElementById("web-download-modal");
+    modal.classList.remove("hidden");
+    const formatArg = isAudio ? "-x --audio-format mp3" : "-f mp4";
+    document.getElementById("modal-ytdlp-cmd").value = `yt-dlp ${formatArg} "${currentFullVideoData.url}"`;
+    document.getElementById("modal-web-cobalt").href = `https://cobalt.tools/`;
+    return;
+  }
 
   const btn = document.getElementById("btn-download-full");
   btn.disabled = true;
@@ -612,7 +748,6 @@ function toggleFullQualitySelect() {
 // ============================================
 // BARRA DE PROGRESSO & POLING DE TAREFAS
 // ============================================
-
 function showTaskCard(title) {
   const card = document.getElementById("active-task-card");
   card.classList.remove("hidden");
@@ -672,8 +807,8 @@ function trackTask(taskId) {
 // ============================================
 // COOKIES (YOUTUBE & TWITTER / X)
 // ============================================
-
 async function checkCookiesStatus() {
+  if (!hasBackend) return;
   try {
     const res = await fetch("/api/cookies");
     if (!res.ok) return;
@@ -688,7 +823,6 @@ async function checkCookiesStatus() {
       badge.innerText = `⚪ Nenhum cookie configurado`;
     }
     
-    // Atualiza textarea se estiver aberta
     const txtArea = document.getElementById("cookies-json-textarea");
     if (txtArea && (!txtArea.value || txtArea.value.trim() === "")) {
       txtArea.value = data.raw;
@@ -709,7 +843,7 @@ async function openCookiesFileInNotepad() {
 function toggleCookiesModal() {
   const modal = document.getElementById("cookies-modal");
   modal.classList.toggle("hidden");
-  if (!modal.classList.contains("hidden")) {
+  if (!modal.classList.contains("hidden") && hasBackend) {
     fetch("/api/cookies").then(r => r.json()).then(data => {
       document.getElementById("cookies-json-textarea").value = data.raw;
     }).catch(() => {});
@@ -718,6 +852,13 @@ function toggleCookiesModal() {
 
 async function saveCookiesFromModal() {
   const text = document.getElementById("cookies-json-textarea").value.trim();
+  if (!hasBackend) {
+    // No modo Pages, salva no localStorage para referência
+    localStorage.setItem("house_clipper_cookies_backup", text);
+    alert("✅ Cookies salvos no navegador para sua sessão web!");
+    toggleCookiesModal();
+    return;
+  }
   try {
     const res = await fetch("/api/cookies", {
       method: "POST",
@@ -738,20 +879,22 @@ async function saveCookiesFromModal() {
 // ============================================
 // HISTÓRICO & CONFIGURAÇÕES
 // ============================================
-
 async function loadConfig() {
+  if (!hasBackend) return;
   try {
     const res = await fetch("/api/config");
     if (res.ok) {
       const config = await res.json();
       document.getElementById("current-folder-display").innerText = config.download_dir || "Padrão: Downloads/HouseClipper";
     }
-  } catch (e) {
-    console.error("Erro carregando config:", e);
-  }
+  } catch (e) {}
 }
 
 async function changeDownloadFolder() {
+  if (!hasBackend) {
+    alert("Essa função está disponível no aplicativo Desktop.");
+    return;
+  }
   try {
     const res = await fetch("/api/select-folder", { method: "POST" });
     const data = await res.json();
@@ -764,6 +907,10 @@ async function changeDownloadFolder() {
 }
 
 async function openDownloadFolder() {
+  if (!hasBackend) {
+    alert("Essa função está disponível no aplicativo Desktop.");
+    return;
+  }
   try {
     await fetch("/api/open-folder", { method: "POST" });
   } catch (e) {
@@ -772,6 +919,7 @@ async function openDownloadFolder() {
 }
 
 async function openFile(filePath) {
+  if (!hasBackend) return;
   try {
     await fetch("/api/open-file", {
       method: "POST",
@@ -784,6 +932,7 @@ async function openFile(filePath) {
 }
 
 async function loadHistory() {
+  if (!hasBackend) return;
   try {
     const res = await fetch("/api/history");
     if (!res.ok) return;
@@ -845,6 +994,7 @@ async function loadHistory() {
 }
 
 async function deleteHistory(id) {
+  if (!hasBackend) return;
   try {
     await fetch(`/api/history/${id}`, { method: "DELETE" });
     loadHistory();

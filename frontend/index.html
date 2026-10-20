@@ -61,7 +61,7 @@
             <h1 class="text-xl font-black tracking-tight bg-gradient-to-r from-amber-200 via-amber-400 to-amber-500 bg-clip-text text-transparent">
               House Clipper
             </h1>
-            <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40">
+            <span id="env-badge" class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40">
               PRO
             </span>
           </div>
@@ -70,7 +70,9 @@
             <span class="text-[11px] font-mono font-semibold tracking-wide text-amber-400/90 bg-[#1c160c] px-2 py-0.5 rounded border border-[#382b17]">
               v1.1.0
             </span>
-            <span class="text-[11px] text-amber-200/60 font-medium">Clipagem Visual & Downloads</span>
+            <span id="backend-status-indicator" class="text-[11px] text-amber-200/60 font-medium flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Conectando...
+            </span>
           </div>
         </div>
       </div>
@@ -98,7 +100,7 @@
           <i id="theme-icon" data-lucide="moon" class="w-4 h-4 text-amber-400"></i>
           <span id="theme-text" class="hidden md:inline">Noturno Escuro</span>
         </button>
-        <button onclick="openDownloadFolder()" title="Abrir pasta de downloads" class="hidden sm:flex px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#1c160c] hover:bg-[#292012] text-amber-300 border border-[#3d2f19] items-center gap-2 transition shadow-sm">
+        <button id="header-folder-btn" onclick="openDownloadFolder()" title="Abrir pasta de downloads" class="hidden sm:flex px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#1c160c] hover:bg-[#292012] text-amber-300 border border-[#3d2f19] items-center gap-2 transition shadow-sm">
           <i data-lucide="folder-open" class="w-4 h-4 text-amber-400"></i>
           <span>Pasta</span>
         </button>
@@ -474,10 +476,10 @@
     <section id="view-history" class="hidden space-y-6">
       
       <!-- Card da Pasta de Salvamento -->
-      <div class="bg-[#14100a] p-5 rounded-2xl border border-[#332816] shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div id="folder-manager-card" class="bg-[#14100a] p-5 rounded-2xl border border-[#332816] shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div class="space-y-1">
           <div class="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase">
-            <i data-lucide="folder" class="w-3.5 h-3.5 text-amber-400"></i> Pasta de Salvamento
+            <i data-lucide="folder" class="w-3.5 h-3.5 text-amber-400"></i> Pasta de Salvamento Local
           </div>
           <div id="current-folder-display" class="text-sm font-mono text-amber-200/90 break-all bg-[#0c0a07] px-3.5 py-2 rounded-xl border border-[#382b17]">
             Carregando pasta...
@@ -511,7 +513,7 @@
           </div>
 
           <div class="flex items-center gap-2 shrink-0">
-            <button onclick="openCookiesFileInNotepad()" class="px-3.5 py-2 bg-[#1c160c] hover:bg-[#281f12] text-amber-300 rounded-xl text-xs font-bold border border-[#3d2f19] transition flex items-center gap-1.5">
+            <button id="btn-open-cookies-notepad" onclick="openCookiesFileInNotepad()" class="px-3.5 py-2 bg-[#1c160c] hover:bg-[#281f12] text-amber-300 rounded-xl text-xs font-bold border border-[#3d2f19] transition flex items-center gap-1.5">
               <i data-lucide="file-edit" class="w-4 h-4 text-amber-400"></i> Abrir no Bloco de Notas
             </button>
             <button onclick="toggleCookiesModal()" class="px-3.5 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-xl text-xs font-bold border border-amber-500/40 transition flex items-center gap-1.5">
@@ -541,6 +543,78 @@
       </div>
 
     </section>
+
+    <!-- ============================================================== -->
+    <!-- MODAL DO MODO WEB (GITHUB PAGES) -->
+    <!-- ============================================================== -->
+    <div id="web-download-modal" class="hidden fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      <div class="bg-[#14100a] border-2 border-amber-500/60 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-fade-in">
+        
+        <div class="flex items-start justify-between pb-3 border-b border-[#2d2414]">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
+              <i data-lucide="sparkles" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h3 class="text-base font-extrabold text-amber-200">
+                Opções de Download (Modo Web)
+              </h3>
+              <p class="text-xs text-amber-200/60">
+                Você está usando o House Clipper via GitHub Pages
+              </p>
+            </div>
+          </div>
+          <button onclick="toggleWebModal()" class="text-amber-400 hover:text-white p-1">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <!-- Opção 1: Comando yt-dlp exato com 1 clique -->
+        <div class="bg-[#0c0a07] p-3.5 rounded-xl border border-[#382b17] space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+              <i data-lucide="terminal" class="w-3.5 h-3.5 text-amber-400"></i>
+              Comando Rápido (yt-dlp no seu terminal)
+            </span>
+            <span class="text-[10px] text-amber-400/80 font-mono">Recomendado</span>
+          </div>
+          <p class="text-[11px] text-amber-200/60">
+            Corta exclusivamente o trecho selecionado sem baixar o vídeo inteiro:
+          </p>
+          <div class="flex items-center gap-2">
+            <input id="modal-ytdlp-cmd" type="text" readonly class="flex-1 bg-[#18130b] border border-[#3d2f19] rounded-lg px-2.5 py-1.5 font-mono text-[11px] text-amber-200 select-all focus:outline-none">
+            <button onclick="copyYtDlpCmd()" class="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-lg text-xs font-bold border border-amber-500/40 transition flex items-center gap-1 shrink-0">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar
+            </button>
+          </div>
+        </div>
+
+        <!-- Opção 2: Abrir no Serviço Web Direto -->
+        <div class="bg-[#0c0a07] p-3.5 rounded-xl border border-[#382b17] space-y-2">
+          <span class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+            <i data-lucide="globe" class="w-3.5 h-3.5 text-amber-400"></i>
+            Download Web Direto (YouTube / Twitter)
+          </span>
+          <p class="text-[11px] text-amber-200/60">
+            Acesse serviços online gratuitos com o link do vídeo já pré-carregado:
+          </p>
+          <div class="flex flex-wrap gap-2 pt-1">
+            <a id="modal-web-cobalt" href="#" target="_blank" class="flex-1 text-center py-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-black font-extrabold rounded-lg text-xs transition shadow-sm">
+              Abrir no Cobalt Web
+            </a>
+          </div>
+        </div>
+
+        <!-- Opção 3: Baixar o HouseClipper.exe para Windows -->
+        <div class="pt-2 border-t border-[#2d2414] flex items-center justify-between">
+          <span class="text-xs text-amber-200/60">Quer baixar com 1 clique direto no PC?</span>
+          <a href="https://github.com/Ziaker/house-clipper/raw/main/HouseClipper.exe" download class="px-3.5 py-1.5 bg-[#1c160c] hover:bg-[#2b2112] text-amber-300 rounded-xl text-xs font-bold border border-[#3d2f19] transition flex items-center gap-1.5">
+            <i data-lucide="download" class="w-3.5 h-3.5 text-amber-400"></i> Baixar HouseClipper.exe
+          </a>
+        </div>
+
+      </div>
+    </div>
 
     <!-- ============================================================== -->
     <!-- MODAL DE COLAR COOKIES EM JSON -->
