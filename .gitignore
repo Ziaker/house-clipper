@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+venv/
+env/
+ENV/
+
+# Arquivos temporários e de histórico local
+cookies_netscape.txt
+history.json
+config.json
+
+# Arquivos de mídia baixados
+*.mp4
+*.mp3
+*.m4a
+*.webm
+*.part
+*.ytdl
+
+# Logs e IDE
+*.log
+.vscode/
+.idea/

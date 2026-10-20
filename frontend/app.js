@@ -1,0 +1,887 @@
+// House Clipper - Frontend Controller (v1.1.0)
+let ytPlayer = null;
+let ytPlayerReady = false;
+let currentVideoDuration = 0;
+let timeUpdateInterval = null;
+let isPreviewing = false;
+let currentPollingTaskId = null;
+let currentVideoUrl = "";
+
+// Elementos DOM
+const startMinInput = document.getElementById("start-min-input");
+const startSecInput = document.getElementById("start-sec-input");
+const endMinInput = document.getElementById("end-min-input");
+const endSecInput = document.getElementById("end-sec-input");
+
+const sliderStart = document.getElementById("slider-start");
+const sliderEnd = document.getElementById("slider-end");
+const clipDurationBadge = document.getElementById("clip-duration-badge");
+const sliderRangeText = document.getElementById("slider-range-text");
+const timelineSelectionBar = document.getElementById("timeline-selection-bar");
+const timelinePlayhead = document.getElementById("timeline-playhead");
+const minuteRuler = document.getElementById("minute-ruler");
+
+document.addEventListener("DOMContentLoaded", () => {
+  lucide.createIcons();
+  setupSliders();
+  loadConfig();
+  loadHistory();
+  checkCookiesStatus();
+  initTheme();
+
+  document.getElementById("clip-url-input").addEventListener("keypress", (e) => {
+    if (e.key === "Enter") loadClipVideo();
+  });
+
+  document.getElementById("full-url-input").addEventListener("keypress", (e) => {
+    if (e.key === "Enter") loadFullVideo();
+  });
+});
+
+// ============================================
+// ALTERNADOR DE MODO NOTURNO (AMARELO BEM MAIS ESCURO)
+// ============================================
+function initTheme() {
+  const savedTheme = localStorage.getItem("house_clipper_theme");
+  if (savedTheme === "dark_amber") {
+    applyTheme(true);
+  } else {
+    applyTheme(false);
+  }
+}
+
+function toggleTheme() {
+  const isDarkAmber = document.body.classList.contains("theme-dark-amber");
+  applyTheme(!isDarkAmber);
+  
+  // Salva na API e LocalStorage
+  const newTheme = !isDarkAmber ? "dark_amber" : "burnt_yellow";
+  localStorage.setItem("house_clipper_theme", newTheme);
+  fetch("/api/config", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ theme: newTheme })
+  }).catch(() => {});
+}
+
+function applyTheme(isDarkAmber) {
+  const icon = document.getElementById("theme-icon");
+  const text = document.getElementById("theme-text");
+  
+  if (isDarkAmber) {
+    document.body.classList.add("theme-dark-amber");
+    if (text) text.innerText = "Âmbar Dourado";
+    if (icon) {
+      icon.setAttribute("data-lucide", "sun");
+    }
+  } else {
+    document.body.classList.remove("theme-dark-amber");
+    if (text) text.innerText = "Noturno Escuro";
+    if (icon) {
+      icon.setAttribute("data-lucide", "moon");
+    }
+  }
+  lucide.createIcons();
+}
+
+// Alternância de Abas
+function switchTab(tabName) {
+  const tabs = ["clip", "full", "history"];
+  tabs.forEach(tab => {
+    const view = document.getElementById(`view-${tab}`);
+    const btn = document.getElementById(`tab-${tab}`);
+    if (tab === tabName) {
+      view.classList.remove("hidden");
+      view.classList.add("animate-fade-in");
+      btn.className = "tab-btn active px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 text-amber-200 bg-amber-600/30 border border-amber-500/40 shadow-sm";
+    } else {
+      view.classList.add("hidden");
+      btn.className = "tab-btn px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 text-amber-200/60 hover:text-amber-100 hover:bg-amber-950/40";
+    }
+  });
+
+  if (tabName === "history") {
+    loadHistory();
+    loadConfig();
+    checkCookiesStatus();
+  }
+}
+
+// Extração do ID do YouTube
+function extractYouTubeId(url) {
+  if (!url) return null;
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
+  return match ? match[1] : null;
+}
+
+// Formatações
+function secondsToMinutesAndSeconds(totalSec) {
+  totalSec = Math.max(0, Math.round(totalSec * 10) / 10);
+  const m = Math.floor(totalSec / 60);
+  const s = Math.floor(totalSec % 60);
+  return { minutes: m, seconds: s, total: totalSec };
+}
+
+function formatTimeString(totalSec) {
+  const { minutes, seconds } = secondsToMinutesAndSeconds(totalSec);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${pad(minutes)}:${pad(seconds)}`;
+}
+
+// Inicialização YouTube Player
+function onYouTubeIframeAPIReady() {
+  ytPlayerReady = true;
+}
+
+function initOrUpdatePlayer(videoId) {
+  if (!window.YT || !window.YT.Player) {
+    setTimeout(() => initOrUpdatePlayer(videoId), 200);
+    return;
+  }
+
+  if (ytPlayer) {
+    ytPlayer.loadVideoById(videoId);
+  } else {
+    ytPlayer = new YT.Player("yt-player-container", {
+      videoId: videoId,
+      playerVars: {
+        autoplay: 1,
+        modestbranding: 1,
+        rel: 0,
+        enablejsapi: 1
+      },
+      events: {
+        onReady: (event) => onPlayerReady(event),
+        onStateChange: (event) => {
+          if (event.data === YT.PlayerState.PLAYING && isPreviewing) {
+            checkPreviewEnd();
+          }
+        }
+      }
+    });
+  }
+}
+
+function onPlayerReady(event) {
+  ytPlayerReady = true;
+  updateVideoDuration();
+
+  if (timeUpdateInterval) clearInterval(timeUpdateInterval);
+  timeUpdateInterval = setInterval(updatePlayerTimeTracker, 100);
+}
+
+function updateVideoDuration() {
+  if (!ytPlayer || !ytPlayer.getDuration) return;
+  const dur = ytPlayer.getDuration();
+  if (dur && dur > 0) {
+    currentVideoDuration = dur;
+    document.getElementById("player-badge-duration").innerText = formatTimeString(dur);
+    
+    sliderStart.max = dur;
+    sliderEnd.max = dur;
+    
+    const initialEnd = Math.min(30, dur);
+    setStartSeconds(0);
+    setEndSeconds(initialEnd);
+    
+    renderMinuteRuler(dur);
+    updateTimelineSelectionVisual();
+  } else {
+    setTimeout(updateVideoDuration, 400);
+  }
+}
+
+function updatePlayerTimeTracker() {
+  if (!ytPlayer || !ytPlayer.getCurrentTime) return;
+  const current = ytPlayer.getCurrentTime();
+  document.getElementById("player-current-time-display").innerText = formatTimeString(current);
+
+  if (currentVideoDuration > 0) {
+    const playheadPercent = (current / currentVideoDuration) * 100;
+    timelinePlayhead.style.left = `${Math.min(100, Math.max(0, playheadPercent))}%`;
+  }
+
+  if (isPreviewing) {
+    const endSec = getEndSeconds();
+    if (current >= endSec) {
+      ytPlayer.pauseVideo();
+      isPreviewing = false;
+    }
+  }
+}
+
+// Régua Visual de Minutos
+function renderMinuteRuler(duration) {
+  if (!minuteRuler) return;
+  minuteRuler.innerHTML = "";
+  
+  const totalMinutes = Math.ceil(duration / 60);
+  
+  for (let m = 0; m <= totalMinutes; m++) {
+    const sec = m * 60;
+    if (sec > duration && m > 0) break;
+    
+    const pill = document.createElement("button");
+    pill.className = "minute-pill";
+    pill.innerText = `${String(m).padStart(2, "0")}:00`;
+    pill.title = `Pular para o minuto ${m}`;
+    pill.onclick = () => {
+      if (ytPlayer && ytPlayer.seekTo) {
+        ytPlayer.seekTo(sec, true);
+      }
+    };
+    minuteRuler.appendChild(pill);
+  }
+}
+
+// Helpers de Tempo
+function getStartSeconds() {
+  const m = parseInt(startMinInput.value) || 0;
+  const s = parseInt(startSecInput.value) || 0;
+  return (m * 60) + s;
+}
+
+function getEndSeconds() {
+  const m = parseInt(endMinInput.value) || 0;
+  const s = parseInt(endSecInput.value) || 0;
+  return (m * 60) + s;
+}
+
+function setStartSeconds(totalSec) {
+  const { minutes, seconds } = secondsToMinutesAndSeconds(totalSec);
+  startMinInput.value = minutes;
+  startSecInput.value = seconds;
+  sliderStart.value = totalSec;
+  updateTimelineSelectionVisual();
+}
+
+function setEndSeconds(totalSec) {
+  const { minutes, seconds } = secondsToMinutesAndSeconds(totalSec);
+  endMinInput.value = minutes;
+  endSecInput.value = seconds;
+  sliderEnd.value = totalSec;
+  updateTimelineSelectionVisual();
+}
+
+function syncFromSeparateInputs() {
+  const start = getStartSeconds();
+  const end = getEndSeconds();
+  
+  sliderStart.value = start;
+  sliderEnd.value = end;
+  updateTimelineSelectionVisual();
+}
+
+// Sincronização dos Sliders e Barra Visual
+function setupSliders() {
+  sliderStart.addEventListener("input", () => {
+    let startVal = parseFloat(sliderStart.value);
+    let endVal = parseFloat(sliderEnd.value);
+    if (startVal >= endVal) {
+      startVal = Math.max(0, endVal - 0.5);
+      sliderStart.value = startVal;
+    }
+    setStartSeconds(startVal);
+    if (ytPlayer && ytPlayer.seekTo) ytPlayer.seekTo(startVal, true);
+  });
+
+  sliderEnd.addEventListener("input", () => {
+    let startVal = parseFloat(sliderStart.value);
+    let endVal = parseFloat(sliderEnd.value);
+    if (endVal <= startVal) {
+      endVal = startVal + 0.5;
+      sliderEnd.value = endVal;
+    }
+    setEndSeconds(endVal);
+  });
+}
+
+function updateTimelineSelectionVisual() {
+  const start = getStartSeconds();
+  const end = getEndSeconds();
+  const diff = Math.max(0, end - start);
+
+  clipDurationBadge.innerText = `${formatTimeString(diff)} (${diff.toFixed(1)}s)`;
+  sliderRangeText.innerText = `${formatTimeString(start)} até ${formatTimeString(end)}`;
+
+  if (currentVideoDuration > 0) {
+    const leftPercent = (start / currentVideoDuration) * 100;
+    const widthPercent = (diff / currentVideoDuration) * 100;
+    timelineSelectionBar.style.left = `${Math.min(100, Math.max(0, leftPercent))}%`;
+    timelineSelectionBar.style.width = `${Math.min(100, Math.max(0, widthPercent))}%`;
+  }
+}
+
+function setStartToCurrent() {
+  if (!ytPlayer || !ytPlayer.getCurrentTime) return;
+  const current = Math.round(ytPlayer.getCurrentTime() * 10) / 10;
+  setStartSeconds(current);
+  
+  const end = getEndSeconds();
+  if (current >= end) {
+    setEndSeconds(current + 15);
+  }
+}
+
+function setEndToCurrent() {
+  if (!ytPlayer || !ytPlayer.getCurrentTime) return;
+  const current = Math.round(ytPlayer.getCurrentTime() * 10) / 10;
+  const start = getStartSeconds();
+  
+  if (current <= start) {
+    alert("O ponto final deve ser maior que o ponto inicial!");
+    return;
+  }
+  setEndSeconds(current);
+}
+
+function seekRelative(deltaSeconds) {
+  if (!ytPlayer || !ytPlayer.getCurrentTime) return;
+  const current = ytPlayer.getCurrentTime();
+  const target = Math.max(0, Math.min(currentVideoDuration || 999999, current + deltaSeconds));
+  ytPlayer.seekTo(target, true);
+}
+
+function adjustStart(delta) {
+  let val = getStartSeconds() + delta;
+  val = Math.max(0, Math.round(val * 10) / 10);
+  const end = getEndSeconds();
+  if (val >= end) return;
+  
+  setStartSeconds(val);
+  if (ytPlayer && ytPlayer.seekTo) ytPlayer.seekTo(val, true);
+}
+
+function adjustEnd(delta) {
+  let val = getEndSeconds() + delta;
+  val = Math.round(val * 10) / 10;
+  const start = getStartSeconds();
+  if (val <= start) return;
+  
+  setEndSeconds(val);
+}
+
+function previewClip() {
+  if (!ytPlayer || !ytPlayer.seekTo) return;
+  const start = getStartSeconds();
+  isPreviewing = true;
+  ytPlayer.seekTo(start, true);
+  ytPlayer.playVideo();
+}
+
+// Carregar Vídeo do YouTube
+async function loadClipVideo() {
+  const urlInput = document.getElementById("clip-url-input");
+  const url = urlInput.value.trim();
+  if (!url) {
+    alert("Por favor, cole o link do YouTube.");
+    return;
+  }
+
+  const videoId = extractYouTubeId(url);
+  if (!videoId) {
+    alert("Link do YouTube inválido. Certifique-se de que é um link de vídeo válido.");
+    return;
+  }
+
+  const btn = document.getElementById("clip-load-btn");
+  btn.innerHTML = `<div class="w-4 h-4 rounded-full border-2 border-black border-t-transparent animate-spin"></div> Carregando...`;
+  btn.disabled = true;
+
+  try {
+    currentVideoUrl = url;
+    document.getElementById("clip-workspace").classList.remove("hidden");
+    document.getElementById("clip-workspace").classList.add("animate-fade-in");
+    
+    initOrUpdatePlayer(videoId);
+
+    const res = await fetch("/api/info", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: url })
+    });
+    
+    if (res.ok) {
+      const data = await res.json();
+      document.getElementById("player-video-title").innerText = data.title || "Vídeo do YouTube";
+      document.getElementById("player-video-author").innerText = data.uploader || "Canal";
+      if (data.duration) {
+        currentVideoDuration = data.duration;
+        document.getElementById("player-badge-duration").innerText = data.duration_formatted;
+        sliderStart.max = data.duration;
+        sliderEnd.max = data.duration;
+        renderMinuteRuler(data.duration);
+        updateTimelineSelectionVisual();
+      }
+
+      if (data.chapters && data.chapters.length > 0) {
+        renderChapters(data.chapters);
+      } else {
+        document.getElementById("chapters-container").classList.add("hidden");
+      }
+    }
+  } catch (err) {
+    console.warn("Erro ao buscar dados do vídeo:", err);
+  } finally {
+    btn.innerHTML = `<i data-lucide="play" class="w-4 h-4 fill-black text-black"></i> Carregar Vídeo`;
+    btn.disabled = false;
+    lucide.createIcons();
+  }
+}
+
+function renderChapters(chapters) {
+  const container = document.getElementById("chapters-container");
+  const list = document.getElementById("chapters-list");
+  container.classList.remove("hidden");
+  list.innerHTML = "";
+
+  chapters.forEach(ch => {
+    const btn = document.createElement("button");
+    btn.className = "chapter-btn";
+    btn.innerHTML = `<strong>${ch.start_formatted}</strong> - ${ch.title}`;
+    btn.onclick = () => {
+      setStartSeconds(ch.start_time);
+      setEndSeconds(ch.end_time || (ch.start_time + 30));
+      if (ytPlayer && ytPlayer.seekTo) ytPlayer.seekTo(ch.start_time, true);
+    };
+    list.appendChild(btn);
+  });
+}
+
+// Iniciar Download do Clipe
+async function startClipping() {
+  if (!currentVideoUrl) {
+    alert("Carregue um vídeo do YouTube primeiro!");
+    return;
+  }
+
+  const start = getStartSeconds();
+  const end = getEndSeconds();
+
+  if (end <= start) {
+    alert("O minuto/segundo final deve ser maior que o inicial!");
+    return;
+  }
+
+  const isAudio = document.getElementById("clip-format").value === "audio";
+  const quality = document.getElementById("clip-quality").value;
+  const customTitle = document.getElementById("clip-custom-title").value.trim();
+
+  const btn = document.getElementById("btn-download-clip");
+  btn.disabled = true;
+  btn.classList.add("opacity-60");
+
+  try {
+    const res = await fetch("/api/clip", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url: currentVideoUrl,
+        start_time: start,
+        end_time: end,
+        quality: quality,
+        is_audio: isAudio,
+        title: customTitle || null
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Erro ao solicitar corte.");
+
+    showTaskCard("✂️ Baixando apenas o clipe...");
+    trackTask(data.task_id);
+
+  } catch (err) {
+    alert("Erro: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove("opacity-60");
+  }
+}
+
+// ============================================
+// ABA 2: DOWNLOAD COMPLETO (YT & TWITTER / X)
+// ============================================
+
+let currentFullVideoData = null;
+
+async function loadFullVideo() {
+  const urlInput = document.getElementById("full-url-input");
+  const url = urlInput.value.trim();
+  if (!url) {
+    alert("Por favor, cole um link do YouTube ou Twitter (X).");
+    return;
+  }
+
+  const btn = document.getElementById("full-load-btn");
+  btn.innerHTML = `<div class="w-4 h-4 rounded-full border-2 border-black border-t-transparent animate-spin"></div> Buscando...`;
+  btn.disabled = true;
+
+  try {
+    const res = await fetch("/api/info", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: url })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Não foi possível obter dados do vídeo.");
+
+    currentFullVideoData = data;
+    renderFullVideoCard(data);
+
+  } catch (err) {
+    alert("Erro ao buscar dados: " + err.message);
+  } finally {
+    btn.innerHTML = `<i data-lucide="search" class="w-4 h-4 text-black"></i> Buscar Vídeo`;
+    btn.disabled = false;
+    lucide.createIcons();
+  }
+}
+
+function renderFullVideoCard(data) {
+  const card = document.getElementById("full-video-card");
+  card.classList.remove("hidden");
+  card.classList.add("animate-fade-in");
+
+  document.getElementById("full-preview-title").innerText = data.title;
+  document.getElementById("full-preview-author").innerText = data.uploader;
+  document.getElementById("full-preview-duration").innerText = data.duration_formatted || "--:--";
+  document.getElementById("full-preview-thumb").src = data.thumbnail || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=60";
+
+  const badge = document.getElementById("full-platform-badge");
+  if (data.platform === "youtube") {
+    badge.className = "absolute top-2 left-2 px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow bg-red-600 text-white";
+    badge.innerHTML = `<i data-lucide="video" class="w-3.5 h-3.5"></i> YouTube`;
+  } else if (data.platform === "twitter") {
+    badge.className = "absolute top-2 left-2 px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow bg-sky-500 text-white";
+    badge.innerHTML = `<i data-lucide="twitter" class="w-3.5 h-3.5"></i> Twitter / X`;
+  } else {
+    badge.className = "absolute top-2 left-2 px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow bg-[#261d10] text-amber-200";
+    badge.innerHTML = `<i data-lucide="globe" class="w-3.5 h-3.5"></i> Web`;
+  }
+
+  lucide.createIcons();
+}
+
+async function startFullDownload() {
+  if (!currentFullVideoData) return;
+
+  const isAudio = document.getElementById("full-format-select").value === "audio";
+  const quality = document.getElementById("full-quality-select").value;
+
+  const btn = document.getElementById("btn-download-full");
+  btn.disabled = true;
+  btn.classList.add("opacity-60");
+
+  try {
+    const res = await fetch("/api/download", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url: currentFullVideoData.url,
+        quality: quality,
+        is_audio: isAudio
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Erro ao iniciar download.");
+
+    showTaskCard("📥 Baixando vídeo completo...");
+    trackTask(data.task_id);
+
+  } catch (err) {
+    alert("Erro: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove("opacity-60");
+  }
+}
+
+function toggleQualitySelect() {
+  const isAudio = document.getElementById("clip-format").value === "audio";
+  document.getElementById("clip-quality-container").style.display = isAudio ? "none" : "block";
+}
+
+function toggleFullQualitySelect() {
+  const isAudio = document.getElementById("full-format-select").value === "audio";
+  document.getElementById("full-quality-container").style.display = isAudio ? "none" : "block";
+}
+
+// ============================================
+// BARRA DE PROGRESSO & POLING DE TAREFAS
+// ============================================
+
+function showTaskCard(title) {
+  const card = document.getElementById("active-task-card");
+  card.classList.remove("hidden");
+  document.getElementById("task-status-title").innerText = title;
+  document.getElementById("task-percent-text").innerText = "0%";
+  document.getElementById("task-progress-bar").style.width = "0%";
+  document.getElementById("task-speed-text").innerText = "Velocidade: ...";
+  document.getElementById("task-eta-text").innerText = "Tempo rest.: ...";
+  document.getElementById("task-done-actions").classList.add("hidden");
+  document.getElementById("task-spinner").classList.remove("hidden");
+}
+
+function closeTaskCard() {
+  document.getElementById("active-task-card").classList.add("hidden");
+}
+
+function trackTask(taskId) {
+  currentPollingTaskId = taskId;
+  const interval = setInterval(async () => {
+    try {
+      const res = await fetch(`/api/tasks/${taskId}`);
+      if (!res.ok) return;
+      const task = await res.json();
+
+      const percent = Math.min(100, Math.max(0, task.progress || 0));
+      document.getElementById("task-percent-text").innerText = `${percent.toFixed(0)}%`;
+      document.getElementById("task-progress-bar").style.width = `${percent}%`;
+
+      if (task.speed) document.getElementById("task-speed-text").innerText = `Velocidade: ${task.speed}`;
+      if (task.eta) document.getElementById("task-eta-text").innerText = `Tempo rest.: ${task.eta}`;
+      if (task.message) document.getElementById("task-status-title").innerText = task.message;
+
+      if (task.status === "completed") {
+        clearInterval(interval);
+        document.getElementById("task-spinner").classList.add("hidden");
+        document.getElementById("task-status-title").innerText = "✅ Salvo com Sucesso!";
+        document.getElementById("task-done-actions").classList.remove("hidden");
+        
+        document.getElementById("task-btn-play").onclick = () => openFile(task.file_path);
+        document.getElementById("task-btn-folder").onclick = () => openDownloadFolder();
+        
+        playSuccessChime();
+        loadHistory();
+      } else if (task.status === "error") {
+        clearInterval(interval);
+        document.getElementById("task-spinner").classList.add("hidden");
+        document.getElementById("task-status-title").innerText = "❌ Erro no download";
+        alert(task.message || task.error || "Erro desconhecido");
+      }
+
+    } catch (e) {
+      console.warn("Polling error:", e);
+    }
+  }, 600);
+}
+
+// ============================================
+// COOKIES (YOUTUBE & TWITTER / X)
+// ============================================
+
+async function checkCookiesStatus() {
+  try {
+    const res = await fetch("/api/cookies");
+    if (!res.ok) return;
+    const data = await res.json();
+    const badge = document.getElementById("cookies-status-badge");
+    
+    if (data.has_cookies) {
+      badge.className = "text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold";
+      badge.innerText = `🟢 ${data.count} Cookies Ativos`;
+    } else {
+      badge.className = "text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700";
+      badge.innerText = `⚪ Nenhum cookie configurado`;
+    }
+    
+    // Atualiza textarea se estiver aberta
+    const txtArea = document.getElementById("cookies-json-textarea");
+    if (txtArea && (!txtArea.value || txtArea.value.trim() === "")) {
+      txtArea.value = data.raw;
+    }
+  } catch (e) {
+    console.warn("Erro checando cookies:", e);
+  }
+}
+
+async function openCookiesFileInNotepad() {
+  try {
+    await fetch("/api/open-cookies-file", { method: "POST" });
+  } catch (e) {
+    alert("Não foi possível abrir o arquivo cookies.json");
+  }
+}
+
+function toggleCookiesModal() {
+  const modal = document.getElementById("cookies-modal");
+  modal.classList.toggle("hidden");
+  if (!modal.classList.contains("hidden")) {
+    fetch("/api/cookies").then(r => r.json()).then(data => {
+      document.getElementById("cookies-json-textarea").value = data.raw;
+    }).catch(() => {});
+  }
+}
+
+async function saveCookiesFromModal() {
+  const text = document.getElementById("cookies-json-textarea").value.trim();
+  try {
+    const res = await fetch("/api/cookies", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cookies_json_text: text })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || "Erro ao salvar cookies.");
+
+    alert(`✅ Sucesso! ${data.count} cookies salvos no cookies.json.`);
+    toggleCookiesModal();
+    checkCookiesStatus();
+  } catch (e) {
+    alert("Erro ao validar JSON de cookies: " + e.message);
+  }
+}
+
+// ============================================
+// HISTÓRICO & CONFIGURAÇÕES
+// ============================================
+
+async function loadConfig() {
+  try {
+    const res = await fetch("/api/config");
+    if (res.ok) {
+      const config = await res.json();
+      document.getElementById("current-folder-display").innerText = config.download_dir || "Padrão: Downloads/HouseClipper";
+    }
+  } catch (e) {
+    console.error("Erro carregando config:", e);
+  }
+}
+
+async function changeDownloadFolder() {
+  try {
+    const res = await fetch("/api/select-folder", { method: "POST" });
+    const data = await res.json();
+    if (data.download_dir) {
+      document.getElementById("current-folder-display").innerText = data.download_dir;
+    }
+  } catch (e) {
+    alert("Erro ao alterar pasta: " + e.message);
+  }
+}
+
+async function openDownloadFolder() {
+  try {
+    await fetch("/api/open-folder", { method: "POST" });
+  } catch (e) {
+    alert("Não foi possível abrir a pasta.");
+  }
+}
+
+async function openFile(filePath) {
+  try {
+    await fetch("/api/open-file", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: filePath })
+    });
+  } catch (e) {
+    alert("Não foi possível abrir o arquivo.");
+  }
+}
+
+async function loadHistory() {
+  try {
+    const res = await fetch("/api/history");
+    if (!res.ok) return;
+    const history = await res.json();
+    const container = document.getElementById("history-list");
+
+    if (!history || history.length === 0) {
+      container.innerHTML = `
+        <div class="text-center py-10 text-amber-200/40 text-sm">
+          Nenhum clipe ou download recente ainda.
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = history.map(item => {
+      const sizeMB = item.file_size ? (item.file_size / (1024 * 1024)).toFixed(1) + " MB" : "Salvo";
+      const isClip = item.type === "clip";
+      const icon = isClip ? "scissors" : "video";
+
+      return `
+        <div class="p-3 hover:bg-[#1f180e] rounded-xl transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 group">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-10 h-10 rounded-xl bg-[#0c0a07] border border-[#382b17] flex items-center justify-center shrink-0">
+              <i data-lucide="${icon}" class="w-5 h-5 text-amber-400"></i>
+            </div>
+            <div class="min-w-0">
+              <h4 class="text-xs sm:text-sm font-bold text-amber-100 truncate group-hover:text-amber-400 transition" title="${item.title}">
+                ${item.title}
+              </h4>
+              <div class="flex items-center gap-2 text-[11px] text-amber-300/50 font-mono mt-0.5">
+                <span>${item.duration || ""}</span>
+                <span>•</span>
+                <span>${sizeMB}</span>
+                <span>•</span>
+                <span class="capitalize">${item.is_audio ? "Áudio MP3" : "Vídeo MP4"}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
+            <button onclick="openFile('${item.file_path.replace(/\\/g, "/")}')" title="Assistir Vídeo" class="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-lg text-xs font-bold border border-amber-500/40 flex items-center gap-1 transition">
+              <i data-lucide="play" class="w-3.5 h-3.5 fill-amber-400"></i> Assistir
+            </button>
+            <button onclick="openDownloadFolder()" title="Abrir na Pasta" class="p-1.5 bg-[#1b150d] hover:bg-[#281f13] text-amber-200 rounded-lg border border-[#3d2f19] transition">
+              <i data-lucide="folder" class="w-3.5 h-3.5"></i>
+            </button>
+            <button onclick="deleteHistory('${item.id}')" title="Remover do histórico" class="p-1.5 text-amber-400/40 hover:text-red-400 rounded-lg transition">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    lucide.createIcons();
+  } catch (e) {
+    console.error("Erro ao carregar histórico:", e);
+  }
+}
+
+async function deleteHistory(id) {
+  try {
+    await fetch(`/api/history/${id}`, { method: "DELETE" });
+    loadHistory();
+  } catch (e) {
+    console.warn("Erro ao remover:", e);
+  }
+}
+
+async function pasteClipboard(targetInputId) {
+  try {
+    const text = await navigator.clipboard.readText();
+    if (text) {
+      document.getElementById(targetInputId).value = text;
+      if (targetInputId === "clip-url-input") {
+        loadClipVideo();
+      } else if (targetInputId === "full-url-input") {
+        loadFullVideo();
+      }
+    }
+  } catch (e) {
+    alert("Por favor, cole com Ctrl+V na caixa de texto.");
+  }
+}
+
+function playSuccessChime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+    osc.frequency.setValueAtTime(880.00, ctx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.4);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.4);
+  } catch (e) {}
+}

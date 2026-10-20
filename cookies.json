@@ -1,0 +1,9 @@
+[
+  {
+    "domain": ".youtube.com",
+    "name": "EXEMPLO_COOKIE",
+    "value": "cole_aqui_seus_cookies_se_necessario",
+    "path": "/",
+    "secure": true
+  }
+]
