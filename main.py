@@ -51,7 +51,7 @@ def main():
         import webview
         print("Iniciando janela nativa do House Clipper...")
         window = webview.create_window(
-            title="House Clipper - v1.1.0",
+            title="House Clipper - v1.3.0",
             url=url,
             width=1260,
             height=860,

@@ -1,4 +1,4 @@
-// House Clipper - Frontend Controller (v1.2.0)
+// House Clipper - Frontend Controller (v1.3.0 - Ultimate Visual Edition)
 let ytPlayer = null;
 let ytPlayerReady = false;
 let currentVideoDuration = 0;
@@ -7,6 +7,8 @@ let isPreviewing = false;
 let currentPollingTaskId = null;
 let currentVideoUrl = "";
 let hasBackend = false;
+let pipObserver = null;
+let pipDismissed = false;
 
 // Elementos DOM
 const startMinInput = document.getElementById("start-min-input");
@@ -242,6 +244,108 @@ function onTimelineLeave() {
   if (hoverVerticalLine) hoverVerticalLine.classList.add("hidden");
 }
 
+// ============================================
+// ONDA SONORA DINÂMICA NA TIMELINE (QoL Visual 3)
+// ============================================
+function generateWaveformBars() {
+  const container = document.getElementById("waveform-container");
+  if (!container) return;
+  container.innerHTML = "";
+  
+  const barCount = 72;
+  for (let i = 0; i < barCount; i++) {
+    const t = i / barCount;
+    const wave = Math.abs(
+      Math.sin(t * 16) * 0.45 +
+      Math.sin(t * 33 + 1.2) * 0.3 +
+      Math.cos(t * 67 + 0.5) * 0.25
+    );
+    const heightPercent = Math.min(95, Math.max(18, Math.round(wave * 88 + 12)));
+    
+    const bar = document.createElement("div");
+    bar.className = "waveform-bar";
+    bar.style.height = `${heightPercent}%`;
+    bar.dataset.percent = (t * 100).toFixed(1);
+    container.appendChild(bar);
+  }
+  highlightWaveformRange();
+}
+
+function highlightWaveformRange() {
+  if (currentVideoDuration <= 0) return;
+  const startSec = getStartSeconds();
+  const endSec = getEndSeconds();
+  const startPct = (startSec / currentVideoDuration) * 100;
+  const endPct = (endSec / currentVideoDuration) * 100;
+  
+  const bars = document.querySelectorAll("#waveform-container .waveform-bar");
+  bars.forEach(bar => {
+    const pct = parseFloat(bar.dataset.percent || 0);
+    if (pct >= startPct && pct <= endPct) {
+      bar.style.opacity = "0.95";
+      bar.style.backgroundColor = "#fbbf24";
+      bar.style.boxShadow = "0 0 4px rgba(251, 191, 36, 0.7)";
+    } else {
+      bar.style.opacity = "0.22";
+      bar.style.backgroundColor = "#d97706";
+      bar.style.boxShadow = "none";
+    }
+  });
+}
+
+// ============================================
+// STICKY MINI-PLAYER FLUTUANTE (QoL Visual 4)
+// ============================================
+function setupStickyPiP() {
+  const anchor = document.getElementById("player-anchor");
+  const wrapper = document.getElementById("yt-player-wrapper");
+  const badge = document.getElementById("pip-badge");
+  if (!anchor || !wrapper || !window.IntersectionObserver) return;
+
+  if (pipObserver) pipObserver.disconnect();
+  pipDismissed = false;
+
+  pipObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const workspace = document.getElementById("clip-workspace");
+      if (!workspace || workspace.classList.contains("hidden")) return;
+      if (pipDismissed) return;
+
+      if (!entry.isIntersecting && entry.boundingClientRect.top < 0) {
+        wrapper.classList.add("sticky-pip-active");
+        if (badge) badge.classList.remove("hidden");
+      } else {
+        wrapper.classList.remove("sticky-pip-active");
+        if (badge) badge.classList.add("hidden");
+      }
+    });
+  }, { threshold: 0.15 });
+
+  pipObserver.observe(anchor);
+}
+
+function dismissPiP(e) {
+  if (e) e.stopPropagation();
+  pipDismissed = true;
+  const wrapper = document.getElementById("yt-player-wrapper");
+  const badge = document.getElementById("pip-badge");
+  if (wrapper) wrapper.classList.remove("sticky-pip-active");
+  if (badge) badge.classList.add("hidden");
+}
+
+// ============================================
+// PULSO NEON DOURADO NO LOGO (QoL Visual 5)
+// ============================================
+function setNeonPulse(active) {
+  const logo = document.getElementById("header-house-logo");
+  if (!logo) return;
+  if (active) {
+    logo.classList.add("house-pulse-neon");
+  } else {
+    logo.classList.remove("house-pulse-neon");
+  }
+}
+
 // Inicialização YouTube Player
 function onYouTubeIframeAPIReady() {
   ytPlayerReady = true;
@@ -298,8 +402,14 @@ function updateVideoDuration() {
     setStartSeconds(0);
     setEndSeconds(initialEnd);
     
-    renderMinuteRuler(dur);
+    if (typeof updateTimelineWindow === "function") {
+      updateTimelineWindow();
+    } else {
+      renderMinuteRuler(dur);
+    }
+    generateWaveformBars();
     updateTimelineSelectionVisual();
+    setupStickyPiP();
   } else {
     setTimeout(updateVideoDuration, 400);
   }
@@ -421,6 +531,7 @@ function updateTimelineSelectionVisual() {
     const widthPercent = (diff / currentVideoDuration) * 100;
     timelineSelectionBar.style.left = `${Math.min(100, Math.max(0, leftPercent))}%`;
     timelineSelectionBar.style.width = `${Math.min(100, Math.max(0, widthPercent))}%`;
+    highlightWaveformRange();
   }
 }
 
@@ -658,7 +769,7 @@ function openWebModalForClip(url, startSec, endSec, isAudio, isVertical, isGif) 
   if (isAudio) formatArg = "-x --audio-format mp3";
   else if (isGif) formatArg = "-f mp4"; // yt-dlp baixa o vídeo base
 
-  const cmd = `yt-dlp --download-sections "*${startStr}-${endStr}" --force-keyframes-at-cuts ${formatArg} "${url}"`;
+  const cmd = `yt-dlp --download-sections "*${startStr}-${endStr}" --force-keyframes-at-cuts ${formatArg} '${url.replaceAll("'", "''")}'`;
   document.getElementById("modal-ytdlp-cmd").value = cmd;
 
   document.getElementById("modal-web-cobalt").href = `https://cobalt.tools/`;
@@ -783,7 +894,7 @@ async function startFullDownload() {
     const modal = document.getElementById("web-download-modal");
     modal.classList.remove("hidden");
     const formatArg = isAudio ? "-x --audio-format mp3" : "-f mp4";
-    document.getElementById("modal-ytdlp-cmd").value = `yt-dlp ${formatArg} "${currentFullVideoData.url}"`;
+    document.getElementById("modal-ytdlp-cmd").value = `yt-dlp ${formatArg} '${currentFullVideoData.url.replaceAll("'", "''")}'`;
     document.getElementById("modal-web-cobalt").href = `https://cobalt.tools/`;
     return;
   }
@@ -847,6 +958,7 @@ function toggleFullQualitySelect() {
 // BARRA DE PROGRESSO & POLING DE TAREFAS
 // ============================================
 function showTaskCard(title) {
+  setNeonPulse(true);
   const card = document.getElementById("active-task-card");
   card.classList.remove("hidden");
   document.getElementById("task-status-title").innerText = title;
@@ -859,6 +971,7 @@ function showTaskCard(title) {
 }
 
 function closeTaskCard() {
+  setNeonPulse(false);
   document.getElementById("active-task-card").classList.add("hidden");
 }
 
@@ -880,6 +993,7 @@ function trackTask(taskId) {
 
       if (task.status === "completed") {
         clearInterval(interval);
+        setNeonPulse(false);
         document.getElementById("task-spinner").classList.add("hidden");
         document.getElementById("task-status-title").innerText = "✅ Salvo com Sucesso!";
         document.getElementById("task-done-actions").classList.remove("hidden");
@@ -891,6 +1005,7 @@ function trackTask(taskId) {
         loadHistory();
       } else if (task.status === "error") {
         clearInterval(interval);
+        setNeonPulse(false);
         document.getElementById("task-spinner").classList.add("hidden");
         document.getElementById("task-status-title").innerText = "❌ Erro no download";
         alert(task.message || task.error || "Erro desconhecido");

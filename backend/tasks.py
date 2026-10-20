@@ -101,8 +101,13 @@ def consume():
                 process = _processes.pop(task_id, None)
                 if process and process.poll() is None:
                     stop_process(process)
+                if process and process.stdout:
+                    process.stdout.close()
             if cookie_jar:
-                Path(cookie_jar).unlink(missing_ok=True)
+                try:
+                    Path(cookie_jar).unlink(missing_ok=True)
+                except OSError:
+                    pass
             _queue.task_done()
 
 
@@ -113,6 +118,11 @@ class DownloadManager:
         with _lock:
             if sum(t["status"] not in TERMINAL for t in active_tasks.values()) >= 100:
                 raise ValueError("A fila está cheia. Aguarde os downloads terminarem.")
+            for old_id in list(active_tasks):
+                if len(active_tasks) < 300:
+                    break
+                if active_tasks[old_id]["status"] in TERMINAL:
+                    del active_tasks[old_id]
             task_id = str(uuid.uuid4())
             request = {**request, "task_id": task_id,
                        "output_dir": get_config()["download_dir"]}

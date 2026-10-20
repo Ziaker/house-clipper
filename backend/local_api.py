@@ -9,7 +9,7 @@ from typing import Literal, Optional
 from urllib.parse import urlsplit
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, field_validator
 from starlette.middleware.trustedhost import TrustedHostMiddleware
@@ -90,7 +90,7 @@ class CookiesUpdateRequest(BaseModel):
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "app": "House Clipper", "version": "v1.2.0"}
+    return {"status": "ok", "app": "House Clipper", "version": "v1.3.0"}
 
 
 @app.post("/api/info")
@@ -248,4 +248,18 @@ def open_file(req: OpenFileRequest):
     return {"success": True}
 
 
-app.mount("/", StaticFiles(directory=str(Path(__file__).resolve().parent.parent / "frontend"), html=True), name="frontend")
+frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
+
+
+@app.get("/", response_class=HTMLResponse)
+@app.get("/index.html", response_class=HTMLResponse)
+def desktop_page():
+    # Compose the desktop improvements without overwriting the shared web UI.
+    source = (frontend_dir / "index.html").read_text(encoding="utf-8")
+    if 'src="features.js"' not in source:
+        source = source.replace("</body>", '<script src="features.js"></script></body>')
+    source = source.replace("</head>", '<link rel="stylesheet" href="features.css"></head>')
+    return source
+
+
+app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")

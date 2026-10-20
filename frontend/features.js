@@ -229,6 +229,10 @@ function clipRequest(start = getStartSeconds(), end = getEndSeconds()) {
   return {url: currentVideoUrl, start_time: start, end_time: end,
     quality: document.getElementById("clip-quality").value,
     is_audio: document.getElementById("clip-format").value === "audio",
+    is_vertical: document.getElementById("clip-format").value === "vertical",
+    is_gif: document.getElementById("clip-format").value === "gif",
+    normalize_audio: document.getElementById("chk-loudness")?.checked || false,
+    embed_subtitles: document.getElementById("chk-subtitles")?.checked || false,
     title: document.getElementById("clip-custom-title").value.trim() || loadedClip?.title || null};
 }
 function addSegment() {
@@ -245,7 +249,7 @@ function renderSegments() {
   list.replaceChildren();
   segments.forEach((segment, index) => {
     const row = element("div", undefined, "toolbar");
-    row.append(element("span", `${index + 1}. ${formatTimeString(segment.start_time)} → ${formatTimeString(segment.end_time)} · ${segment.is_audio ? "MP3" : "MP4"} · ${segment.quality === "best" ? "Máxima" : segment.quality + "p"}`));
+    row.append(element("span", `${index + 1}. ${formatTimeString(segment.start_time)} → ${formatTimeString(segment.end_time)} · ${segment.is_audio ? "MP3" : segment.is_gif ? "GIF" : segment.is_vertical ? "MP4 9:16" : "MP4"} · ${segment.quality === "best" ? "Máxima" : segment.quality + "p"}`));
     row.append(button("Rever", () => { setStartSeconds(segment.start_time); setEndSeconds(segment.end_time); updateTimelineWindow(); previewClip(); }));
     const remove = button("Remover", () => { segments.splice(index, 1); renderSegments(); });
     remove.disabled = submittingSegments;
@@ -294,6 +298,7 @@ function renderTasks(tasks) {
   const focusedId = document.activeElement?.dataset?.taskAction;
   list.replaceChildren();
   const active = tasks.filter(t => !["completed", "error", "cancelled"].includes(t.status));
+  if (typeof setNeonPulse === "function") setNeonPulse(active.length > 0);
   document.getElementById("queue-count").textContent = active.length;
   if (!tasks.length) list.append(element("p", "Nenhum download nesta sessão."));
   [...tasks].reverse().forEach(task => {

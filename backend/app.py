@@ -63,7 +63,7 @@ class CookiesUpdateRequest(BaseModel):
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "app": "House Clipper", "version": "v1.2.0"}
+    return {"status": "ok", "app": "House Clipper", "version": "v1.3.0"}
 
 @app.post("/api/info")
 def get_info(req: VideoInfoRequest):

@@ -1,4 +1,4 @@
-/* House Clipper - Estilos Personalizados (v1.2.0) */
+/* House Clipper - Estilos Personalizados (v1.3.0 - Ultimate Visual Edition) */
 
 :root {
   --bg-main: #0b0906;
@@ -195,7 +195,64 @@ body.theme-dark-amber .tab-btn.active {
   color: #ffffff;
 }
 
-/* Animação Shimmer Dourado na Barra de Progresso */
+/* ============================================================== */
+/* QoL VISUAL 4: STICKY MINI-PLAYER FLUTUANTE (PICTURE-IN-PICTURE) */
+/* ============================================================== */
+.sticky-pip-active {
+  position: fixed !important;
+  bottom: 24px !important;
+  right: 24px !important;
+  width: 330px !important;
+  height: 195px !important;
+  z-index: 100 !important;
+  border: 2px solid #f59e0b !important;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.85), 0 0 20px rgba(245, 158, 11, 0.4) !important;
+  border-radius: 18px !important;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  animation: pipSlideIn 0.35s ease-out forwards;
+}
+
+@keyframes pipSlideIn {
+  from { opacity: 0; transform: translateY(25px) scale(0.92); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.pip-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid #f59e0b;
+  color: #fbbf24;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ============================================================== */
+/* QoL VISUAL 5: PULSO NEON DOURADO & SHIMMER NA BARRA */
+/* ============================================================== */
+@keyframes houseNeonPulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.5));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 18px rgba(245, 158, 11, 0.95)) drop-shadow(0 0 25px rgba(217, 119, 6, 0.7));
+    transform: scale(1.05);
+  }
+}
+
+.house-pulse-neon {
+  animation: houseNeonPulse 1.4s ease-in-out infinite !important;
+}
+
 @keyframes shimmerGlow {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(200%); }
@@ -210,25 +267,27 @@ body.theme-dark-amber .tab-btn.active {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-  animation: shimmerGlow 1.8s infinite;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  animation: shimmerGlow 1.6s infinite;
 }
 
-/* Balão Flutuante de Minuto (Hover Time Bubble) */
+/* ============================================================== */
+/* QoL VISUAL 1: BALÃO FLUTUANTE DE MINUTO (HOVER TIME BUBBLE) */
+/* ============================================================== */
 #hover-time-bubble {
   position: absolute;
   bottom: 110%;
   transform: translateX(-50%);
   background: #d97706;
   color: #000000;
-  padding: 2px 8px;
-  border-radius: 6px;
+  padding: 3px 9px;
+  border-radius: 7px;
   font-size: 11px;
   font-family: 'JetBrains Mono', monospace;
-  font-weight: 800;
+  font-weight: 900;
   pointer-events: none;
   white-space: nowrap;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6), 0 0 8px rgba(245, 158, 11, 0.5);
   border: 1px solid #fbbf24;
   z-index: 30;
   transition: opacity 0.1s ease;
@@ -240,7 +299,7 @@ body.theme-dark-amber .tab-btn.active {
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  border-width: 4px;
+  border-width: 5px;
   border-style: solid;
   border-color: #d97706 transparent transparent transparent;
 }
@@ -249,30 +308,70 @@ body.theme-dark-amber .tab-btn.active {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 1px;
-  background: rgba(245, 158, 11, 0.8);
+  width: 1.5px;
+  background: #f59e0b;
+  box-shadow: 0 0 6px #f59e0b;
   pointer-events: none;
   z-index: 25;
 }
 
-/* Onda Sonora Visual (Waveform Aesthetic) */
-.waveform-bg {
-  background-image: repeating-linear-gradient(
-    90deg,
-    rgba(217, 119, 6, 0.15) 0px,
-    rgba(217, 119, 6, 0.15) 2px,
-    transparent 2px,
-    transparent 5px
-  );
+/* ============================================================== */
+/* QoL VISUAL 3: ONDA SONORA VISUAL (WAVEFORM BARS) */
+/* ============================================================== */
+.waveform-bars-container {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+  pointer-events: none;
+  opacity: 0.35;
+  gap: 2px;
+}
+
+.waveform-bar {
+  flex: 1;
+  background: #fbbf24;
+  border-radius: 1px;
+  transition: height 0.2s ease, opacity 0.2s ease;
+}
+
+/* ============================================================== */
+/* QoL VISUAL 2: MÁSCARAS DE ENQUADRAMENTO NO PLAYER (9:16 & 1:1) */
+/* ============================================================== */
+.overlay-guide-center-badge {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid rgba(245, 158, 11, 0.7);
+  color: #fbbf24;
+  padding: 3px 10px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
 }
 
 /* Card Draggable para Arrastar para Outros Apps */
 .draggable-clip-card {
   cursor: grab;
   user-select: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.draggable-clip-card:hover {
+  transform: translateY(-1px);
 }
 .draggable-clip-card:active {
   cursor: grabbing;
+  transform: scale(0.99);
 }
 
 @keyframes fadeIn {
