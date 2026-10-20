@@ -48,6 +48,12 @@ class AppTests(unittest.TestCase):
         for path in ("/cookies.json", "/backend/app.py", "/config.json", "/.git/config"):
             self.assertEqual(self.client.get(path).status_code, 404)
 
+    def test_color_themes_config(self):
+        for theme in ("burnt_yellow", "blue", "red", "green", "purple", "pink", "dark_amber"):
+            res = self.client.post("/api/config", json={"theme": theme})
+            self.assertEqual(res.status_code, 200)
+            self.assertEqual(res.json()["theme"], theme)
+
     def test_invalid_urls_rejected_before_extraction(self):
         for url in ("file:///etc/passwd", "http://127.0.0.1", "https://youtube.com.evil.example/a",
                     "https://user:pass@youtube.com/watch?v=abc", "https://youtube.com:1234/a"):

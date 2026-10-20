@@ -76,7 +76,7 @@ class FullDownloadRequest(legacy.FullDownloadRequest, DownloadValidation):
 
 class ConfigUpdateRequest(BaseModel):
     download_dir: Optional[str] = None
-    theme: Optional[Literal["burnt_yellow", "dark_amber"]] = None
+    theme: Optional[Literal["burnt_yellow", "dark_amber", "blue", "red", "green", "purple", "pink"]] = None
     default_quality: Optional[Literal["best", "1080", "720", "480"]] = None
 
 

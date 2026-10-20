@@ -72,10 +72,21 @@ O **House Clipper** foi desenvolvido seguindo as melhores práticas de transpar�
 11. **📦 Arrastar e Soltar Direto para Outros Apps (Drag & Drop)**:
     - Arraste os cards de clipes salvos no histórico diretamente para o Discord, Telegram, WhatsApp Web, Premiere ou pastas do Windows.
 
-12. **🌙 Modo Noturno Amarelo Escuro (*Deep Night Amber*)**:
-    - Alterne com 1 clique entre o tema **Âmbar Dourado** e o **Noturno Escuro** com amarelo mostarda fechado e fundo preto profundo para descanso visual.
+12. **🎨 Filtros de Cores da Interface & Vídeo (Amarelo, Azul, Vermelho, Verde, Roxo, Rosa)**:
+    - Seletor de 6 paletas neon completas no topo da tela:
+      - 🟡 **Amarelo Queimado / Dourado** *(Clássico House Clipper)*
+      - 🔵 **Azul Neon** *(Cyber Cobalt)*
+      - 🔴 **Vermelho Carmim** *(Ruby Scarlet)*
+      - 🟢 **Verde Esmeralda** *(Matrix Emerald)*
+      - 🟣 **Roxo Ametista** *(Royal Cyberpunk)*
+      - 🌸 **Rosa Choque** *(Neon Vaporwave)*
+    - Todos os componentes, sliders, brilhos neon do logo, waveforms e menus transformam-se instantaneamente na cor escolhida.
+    - Opção adicional de aplicar filtros de color grading nos próprios clipes exportados via FFmpeg.
 
-13. **🍪 Suporte a Cookies (`cookies.json`)**:
+13. **🌙 Modo Noturno Amarelo Escuro (*Deep Night Amber*)**:
+    - Alterne com 1 clique entre o tema ativo e o **Noturno Escuro** com fundo preto profundo para descanso visual prolongado.
+
+14. **🍪 Suporte a Cookies (`cookies.json`)**:
     - Suporte a cookies em formato JSON para acessar vídeos com restrição de idade ou que exigem login.
 
 ---

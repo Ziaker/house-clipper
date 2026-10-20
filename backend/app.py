@@ -42,6 +42,7 @@ class ClipRequest(BaseModel):
     is_gif: bool = False
     normalize_audio: bool = False
     embed_subtitles: bool = False
+    color_filter: Optional[str] = None
 
 class FullDownloadRequest(BaseModel):
     url: str
@@ -49,6 +50,7 @@ class FullDownloadRequest(BaseModel):
     is_audio: bool = False
     title: Optional[str] = None
     normalize_audio: bool = False
+    color_filter: Optional[str] = None
 
 class ConfigUpdateRequest(BaseModel):
     download_dir: Optional[str] = None

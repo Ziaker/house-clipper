@@ -233,6 +233,7 @@ function clipRequest(start = getStartSeconds(), end = getEndSeconds()) {
     is_gif: document.getElementById("clip-format").value === "gif",
     normalize_audio: document.getElementById("chk-loudness")?.checked || false,
     embed_subtitles: document.getElementById("chk-subtitles")?.checked || false,
+    color_filter: document.getElementById("clip-color-filter")?.value !== "none" ? document.getElementById("clip-color-filter")?.value : null,
     title: document.getElementById("clip-custom-title").value.trim() || loadedClip?.title || null};
 }
 function addSegment() {

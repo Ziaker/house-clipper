@@ -84,46 +84,76 @@ async function checkBackendConnection() {
 }
 
 // ============================================
-// ALTERNADOR DE MODO NOTURNO (AMARELO BEM MAIS ESCURO)
+// SISTEMA DE TEMAS E FILTROS DE CORES
+// (Amarelo, Azul, Vermelho, Verde, Roxo, Rosa, Noturno)
 // ============================================
+const VALID_THEMES = ["burnt_yellow", "blue", "red", "green", "purple", "pink", "dark_amber"];
+
 function initTheme() {
-  const savedTheme = localStorage.getItem("house_clipper_theme");
-  if (savedTheme === "dark_amber") {
-    applyTheme(true);
-  } else {
-    applyTheme(false);
-  }
+  const savedTheme = localStorage.getItem("house_clipper_theme") || "burnt_yellow";
+  setTheme(savedTheme, false);
 }
 
-function toggleTheme() {
-  const isDarkAmber = document.body.classList.contains("theme-dark-amber");
-  applyTheme(!isDarkAmber);
-  
-  const newTheme = !isDarkAmber ? "dark_amber" : "burnt_yellow";
-  localStorage.setItem("house_clipper_theme", newTheme);
-  if (hasBackend) {
-    fetch("/api/config", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ theme: newTheme })
-    }).catch(() => {});
-  }
-}
+function setTheme(themeName, persist = true) {
+  if (!VALID_THEMES.includes(themeName)) themeName = "burnt_yellow";
 
-function applyTheme(isDarkAmber) {
+  // Remove classes anteriores de temas
+  const classesToRemove = ["theme-burnt-yellow", "theme-blue", "theme-red", "theme-green", "theme-purple", "theme-pink", "theme-dark-amber"];
+  document.body.classList.remove(...classesToRemove);
+
+  if (themeName === "dark_amber") {
+    document.body.classList.add("theme-dark-amber");
+  } else if (themeName !== "burnt_yellow") {
+    document.body.classList.add(`theme-${themeName}`);
+  }
+
+  // Atualiza pílulas de cores no topo
+  const btns = document.querySelectorAll(".color-theme-btn");
+  btns.forEach(btn => {
+    if (btn.dataset.theme === themeName) {
+      btn.classList.add("active");
+    } else {
+      btn.classList.remove("active");
+    }
+  });
+
+  // Atualiza botão Noturno
   const icon = document.getElementById("theme-icon");
   const text = document.getElementById("theme-text");
-  
-  if (isDarkAmber) {
-    document.body.classList.add("theme-dark-amber");
+  if (themeName === "dark_amber") {
     if (text) text.innerText = "Âmbar Dourado";
     if (icon) icon.setAttribute("data-lucide", "sun");
   } else {
-    document.body.classList.remove("theme-dark-amber");
     if (text) text.innerText = "Noturno Escuro";
     if (icon) icon.setAttribute("data-lucide", "moon");
   }
   lucide.createIcons();
+
+  if (persist) {
+    localStorage.setItem("house_clipper_theme", themeName);
+    if (hasBackend) {
+      fetch("/api/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ theme: themeName })
+      }).catch(() => {});
+    }
+  }
+
+  highlightWaveformRange();
+}
+
+function toggleTheme() {
+  const current = localStorage.getItem("house_clipper_theme") || "burnt_yellow";
+  if (current === "dark_amber") {
+    setTheme("burnt_yellow");
+  } else {
+    setTheme("dark_amber");
+  }
+}
+
+function applyTheme(isDarkAmber) {
+  setTheme(isDarkAmber ? "dark_amber" : "burnt_yellow");
 }
 
 // Alternância de Abas
@@ -278,16 +308,20 @@ function highlightWaveformRange() {
   const startPct = (startSec / currentVideoDuration) * 100;
   const endPct = (endSec / currentVideoDuration) * 100;
   
+  const style = getComputedStyle(document.body);
+  const primaryColor = style.getPropertyValue('--theme-light').trim() || "#fbbf24";
+  const dimColor = style.getPropertyValue('--theme-secondary').trim() || "#d97706";
+
   const bars = document.querySelectorAll("#waveform-container .waveform-bar");
   bars.forEach(bar => {
     const pct = parseFloat(bar.dataset.percent || 0);
     if (pct >= startPct && pct <= endPct) {
       bar.style.opacity = "0.95";
-      bar.style.backgroundColor = "#fbbf24";
-      bar.style.boxShadow = "0 0 4px rgba(251, 191, 36, 0.7)";
+      bar.style.backgroundColor = primaryColor;
+      bar.style.boxShadow = `0 0 5px ${primaryColor}`;
     } else {
       bar.style.opacity = "0.22";
-      bar.style.backgroundColor = "#d97706";
+      bar.style.backgroundColor = dimColor;
       bar.style.boxShadow = "none";
     }
   });
@@ -709,6 +743,8 @@ async function startClipping() {
   const customTitle = document.getElementById("clip-custom-title").value.trim();
   const normalizeAudio = document.getElementById("chk-loudness").checked;
   const embedSubtitles = document.getElementById("chk-subtitles").checked;
+  const colorFilterEl = document.getElementById("clip-color-filter");
+  const colorFilter = (colorFilterEl && colorFilterEl.value !== "none") ? colorFilterEl.value : null;
 
   if (!hasBackend) {
     openWebModalForClip(currentVideoUrl, start, end, isAudio, isVertical, isGif);
@@ -733,6 +769,7 @@ async function startClipping() {
         is_gif: isGif,
         normalize_audio: normalizeAudio,
         embed_subtitles: embedSubtitles,
+        color_filter: colorFilter,
         title: customTitle || null
       })
     });

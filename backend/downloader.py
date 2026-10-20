@@ -137,8 +137,16 @@ def extract_video_info(url: str) -> dict:
             "formats": formats
         }
 
-def process_advanced_effects(input_file: str, is_vertical: bool, normalize_audio: bool, export_gif: bool) -> str:
-    """Aplica pós-processamentos FFmpeg (9:16 com blur, GIF otimizado ou normalização de som)."""
+COLOR_FILTERS = {
+    "blue": "colorbalance=rh=-0.1:gh=0:bh=0.25:rm=-0.1:bm=0.25:rs=-0.1:bs=0.2",
+    "red": "colorbalance=rh=0.25:gh=-0.1:bh=-0.1:rm=0.2:gm=-0.05:rs=0.15",
+    "green": "colorbalance=rh=-0.15:gh=0.25:bh=-0.15:gm=0.2:gs=0.15",
+    "purple": "colorbalance=rh=0.2:gh=-0.2:bh=0.25:rm=0.15:bm=0.2",
+    "pink": "colorbalance=rh=0.25:gh=-0.1:bh=0.15:rm=0.2:gm=-0.05:bm=0.1:rs=0.2",
+}
+
+def process_advanced_effects(input_file: str, is_vertical: bool, normalize_audio: bool, export_gif: bool, color_filter: Optional[str] = None) -> str:
+    """Aplica pós-processamentos FFmpeg (9:16 com blur, GIF otimizado, filtro de cores ou normalização de som)."""
     base, ext = os.path.splitext(input_file)
     
     if export_gif:
@@ -154,16 +162,21 @@ def process_advanced_effects(input_file: str, is_vertical: bool, normalize_audio
                 pass
         return out_file
 
-    if not is_vertical and not normalize_audio:
+    has_color_filter = color_filter in COLOR_FILTERS
+    if not is_vertical and not normalize_audio and not has_color_filter:
         return input_file
 
     out_file = base + "_processed.mp4"
     cmd = ["ffmpeg", "-y", "-i", input_file]
 
-    # Filtro de Vídeo: 9:16 Vertical com Fundo Desfocado
+    # Filtro de Vídeo: 9:16 Vertical com Fundo Desfocado e/ou Filtro de Cores
     if is_vertical:
         vf = "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=20:5[bg];[0:v]scale=1080:1920:force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2"
+        if has_color_filter:
+            vf += f",{COLOR_FILTERS[color_filter]}"
         cmd.extend(["-vf", vf, "-c:v", "libx264", "-preset", "fast", "-crf", "22"])
+    elif has_color_filter:
+        cmd.extend(["-vf", COLOR_FILTERS[color_filter], "-c:v", "libx264", "-preset", "fast", "-crf", "22"])
     else:
         cmd.extend(["-c:v", "copy"])
 
@@ -235,7 +248,8 @@ class DownloadManager:
                             is_vertical: bool = False,
                             is_gif: bool = False,
                             normalize_audio: bool = False,
-                            embed_subtitles: bool = False) -> str:
+                            embed_subtitles: bool = False,
+                            color_filter: Optional[str] = None) -> str:
         task_id = str(uuid.uuid4())
         active_tasks[task_id] = {
             "id": task_id,
@@ -329,14 +343,15 @@ class DownloadManager:
                         if os.path.exists(mp4_candidate):
                             final_filename = mp4_candidate
 
-                # Pós-processamento avançado: 9:16 Vertical, GIF ou Normalização de áudio
-                if not is_audio_only and (is_vertical or is_gif or normalize_audio):
-                    task["message"] = "Renderizando efeitos avançados (9:16 / GIF / Loudness)..."
+                # Pós-processamento avançado: 9:16 Vertical, GIF, Filtro de Cor ou Normalização de áudio
+                if not is_audio_only and (is_vertical or is_gif or normalize_audio or color_filter):
+                    task["message"] = "Renderizando efeitos avançados (9:16 / GIF / Cores / Loudness)..."
                     final_filename = process_advanced_effects(
                         final_filename, 
                         is_vertical=is_vertical, 
                         normalize_audio=normalize_audio, 
-                        export_gif=is_gif
+                        export_gif=is_gif,
+                        color_filter=color_filter
                     )
 
                 file_size = os.path.getsize(final_filename) if os.path.exists(final_filename) else 0
