@@ -1,0 +1,15 @@
+/* Approved identity 02 — Estúdio. Brand colors stay fixed across UI themes. */
+#header-house-logo {
+  background: transparent !important;
+  padding: 0 !important;
+  box-shadow: none;
+  flex-shrink: 0;
+}
+#header-house-logo img { width: 48px; height: 48px; display: block; }
+#header-house-logo + div h1 {
+  background: none !important;
+  color: #f8f6ef !important;
+  -webkit-text-fill-color: #f8f6ef;
+  font-weight: 800;
+  letter-spacing: -.035em;
+}

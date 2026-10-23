@@ -145,16 +145,37 @@ COLOR_FILTERS = {
     "pink": "colorbalance=rh=0.25:gh=-0.1:bh=0.15:rm=0.2:gm=-0.05:bm=0.1:rs=0.2",
 }
 
-def process_advanced_effects(input_file: str, is_vertical: bool, normalize_audio: bool, export_gif: bool, color_filter: Optional[str] = None) -> str:
-    """Aplica pós-processamentos FFmpeg (9:16 com blur, GIF otimizado, filtro de cores ou normalização de som)."""
+def get_media_duration(file_path: str) -> float:
+    try:
+        res = subprocess.run(
+            ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", file_path],
+            capture_output=True, text=True, timeout=10,
+            **({"creationflags": subprocess.CREATE_NO_WINDOW} if sys.platform == "win32" else {})
+        )
+        return float(res.stdout.strip())
+    except Exception:
+        return 0.0
+
+def process_advanced_effects(input_file: str, is_vertical: bool = False, normalize_audio: bool = False, export_gif: bool = False, color_filter: Optional[str] = None, vertical_mode: str = "blur", fade_effect: bool = False, overlay_text: Optional[str] = None, speed: float = 1.0) -> str:
+    """Aplica pós-processamentos FFmpeg (9:16 blur/crop, GIF otimizado, filtro de cores, fade in/out, texto e velocidade)."""
     base, ext = os.path.splitext(input_file)
     
     if export_gif:
         out_file = base + ".gif"
-        # Filtro de paleta de 2 passos para GIF de altíssima fidelidade
-        filter_str = "fps=15,scale=480:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=128[p];[s1][p]paletteuse=dither=bayer"
+        gif_filters = []
+        if speed and speed != 1.0 and 0.5 <= speed <= 2.0:
+            gif_filters.append(f"setpts=PTS/{speed}")
+        if color_filter in COLOR_FILTERS:
+            gif_filters.append(COLOR_FILTERS[color_filter])
+        if overlay_text and overlay_text.strip():
+            safe_text = re.sub(r"[\x22\x27:]", "", overlay_text.strip())
+            gif_filters.append(f"drawtext=text='{safe_text}':fontcolor=white:fontsize=28:x=(w-text_w)/2:y=h-50:box=1:boxcolor=black@0.65:boxborderw=6")
+        
+        gif_filters.append("fps=15,scale=480:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=128[p];[s1][p]paletteuse=dither=bayer")
+        filter_str = ",".join(gif_filters)
         cmd = ["ffmpeg", "-y", "-i", input_file, "-vf", filter_str, out_file]
-        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True,
+                       **({"creationflags": subprocess.CREATE_NO_WINDOW} if sys.platform == "win32" else {}))
         if os.path.exists(out_file) and out_file != input_file and os.path.exists(input_file):
             try:
                 os.remove(input_file)
@@ -163,31 +184,79 @@ def process_advanced_effects(input_file: str, is_vertical: bool, normalize_audio
         return out_file
 
     has_color_filter = color_filter in COLOR_FILTERS
-    if not is_vertical and not normalize_audio and not has_color_filter:
+    has_speed = speed and speed != 1.0 and 0.5 <= speed <= 2.0
+    has_overlay_text = bool(overlay_text and overlay_text.strip())
+    
+    if not is_vertical and not normalize_audio and not has_color_filter and not fade_effect and not has_overlay_text and not has_speed:
         return input_file
 
     out_file = base + "_processed.mp4"
     cmd = ["ffmpeg", "-y", "-i", input_file]
 
-    # Filtro de Vídeo: 9:16 Vertical com Fundo Desfocado e/ou Filtro de Cores
+    vf_filters = []
+    af_filters = []
+
+    # 1. Enquadramento Vertical 9:16
     if is_vertical:
-        vf = "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=20:5[bg];[0:v]scale=1080:1920:force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2"
-        if has_color_filter:
-            vf += f",{COLOR_FILTERS[color_filter]}"
-        cmd.extend(["-vf", vf, "-c:v", "libx264", "-preset", "fast", "-crf", "22"])
-    elif has_color_filter:
-        cmd.extend(["-vf", COLOR_FILTERS[color_filter], "-c:v", "libx264", "-preset", "fast", "-crf", "22"])
+        if vertical_mode == "crop_center":
+            vf_filters.append("scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920:(in_w-out_w)/2:(in_h-out_h)/2")
+        elif vertical_mode == "crop_left":
+            vf_filters.append("scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920:0:(in_h-out_h)/2")
+        elif vertical_mode == "crop_right":
+            vf_filters.append("scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920:(in_w-out_w):(in_h-out_h)/2")
+        else:
+            vf_filters.append("[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=20:5[bg];[0:v]scale=1080:1920:force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2")
+
+    # 2. Filtro de Cores
+    if has_color_filter:
+        vf_filters.append(COLOR_FILTERS[color_filter])
+
+    # 3. Velocidade de Reprodução
+    if has_speed:
+        vf_filters.append(f"setpts=PTS/{speed}")
+        af_filters.append(f"atempo={speed}")
+
+    # 4. Fade In / Fade Out
+    if fade_effect:
+        dur = get_media_duration(input_file)
+        if dur > 1.2:
+            fade_out_st = max(0.5, round(dur - 0.5, 2))
+            vf_filters.append(f"fade=t=in:st=0:d=0.5,fade=t=out:st={fade_out_st}:d=0.5")
+            af_filters.append(f"afade=t=in:st=0:d=0.5,afade=t=out:st={fade_out_st}:d=0.5")
+        else:
+            vf_filters.append("fade=t=in:st=0:d=0.3")
+            af_filters.append("afade=t=in:st=0:d=0.3")
+
+    # 5. Texto / Marca d'água no Vídeo
+    if has_overlay_text:
+        safe_text = re.sub(r"[\x22\x27:]", "", overlay_text.strip())
+        vf_filters.append(f"drawtext=text='{safe_text}':fontcolor=white:fontsize=36:x=(w-text_w)/2:y=h-70:box=1:boxcolor=black@0.65:boxborderw=8")
+
+    # 6. Normalização de Áudio (Loudness EBU R128)
+    if normalize_audio:
+        af_filters.append("loudnorm=I=-16:TP=-1.5:LRA=11")
+
+    # Monta filtros no comando ffmpeg
+    if vf_filters:
+        if is_vertical and vertical_mode not in ("crop_center", "crop_left", "crop_right"):
+            blur_graph = "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=20:5[bg];[0:v]scale=1080:1920:force_original_aspect_ratio=decrease[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2"
+            extra_vfs = [f for f in vf_filters if f != blur_graph]
+            if extra_vfs:
+                blur_graph += f",{','.join(extra_vfs)}"
+            cmd.extend(["-filter_complex", blur_graph, "-c:v", "libx264", "-preset", "fast", "-crf", "22"])
+        else:
+            cmd.extend(["-vf", ",".join(vf_filters), "-c:v", "libx264", "-preset", "fast", "-crf", "22"])
     else:
         cmd.extend(["-c:v", "copy"])
 
-    # Filtro de Áudio: Normalização de volume inteligente (loudnorm)
-    if normalize_audio:
-        cmd.extend(["-af", "loudnorm=I=-16:TP=-1.5:LRA=11", "-c:a", "aac", "-b:a", "192k"])
+    if af_filters:
+        cmd.extend(["-af", ",".join(af_filters), "-c:a", "aac", "-b:a", "192k"])
     else:
         cmd.extend(["-c:a", "copy"])
 
     cmd.append(out_file)
-    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True,
+                   **({"creationflags": subprocess.CREATE_NO_WINDOW} if sys.platform == "win32" else {}))
 
     if os.path.exists(out_file):
         try:
@@ -249,7 +318,11 @@ class DownloadManager:
                             is_gif: bool = False,
                             normalize_audio: bool = False,
                             embed_subtitles: bool = False,
-                            color_filter: Optional[str] = None) -> str:
+                            color_filter: Optional[str] = None,
+                            vertical_mode: str = "blur",
+                            fade_effect: bool = False,
+                            overlay_text: Optional[str] = None,
+                            speed: float = 1.0) -> str:
         task_id = str(uuid.uuid4())
         active_tasks[task_id] = {
             "id": task_id,
@@ -343,15 +416,19 @@ class DownloadManager:
                         if os.path.exists(mp4_candidate):
                             final_filename = mp4_candidate
 
-                # Pós-processamento avançado: 9:16 Vertical, GIF, Filtro de Cor ou Normalização de áudio
-                if not is_audio_only and (is_vertical or is_gif or normalize_audio or color_filter):
-                    task["message"] = "Renderizando efeitos avançados (9:16 / GIF / Cores / Loudness)..."
+                # Pós-processamento avançado: 9:16 Vertical, GIF, Filtro de Cor, Fade, Texto, Velocidade ou Normalização de áudio
+                if not is_audio_only and (is_vertical or is_gif or normalize_audio or color_filter or fade_effect or overlay_text or (speed and speed != 1.0)):
+                    task["message"] = "Renderizando efeitos avançados (9:16 / GIF / Cores / Fade / Texto)..."
                     final_filename = process_advanced_effects(
                         final_filename, 
                         is_vertical=is_vertical, 
                         normalize_audio=normalize_audio, 
                         export_gif=is_gif,
-                        color_filter=color_filter
+                        color_filter=color_filter,
+                        vertical_mode=vertical_mode,
+                        fade_effect=fade_effect,
+                        overlay_text=overlay_text,
+                        speed=speed
                     )
 
                 file_size = os.path.getsize(final_filename) if os.path.exists(final_filename) else 0

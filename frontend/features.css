@@ -1,0 +1,25 @@
+header > div { height:auto !important; min-height:80px; flex-wrap:wrap; gap:12px; padding-top:12px; padding-bottom:12px; }
+nav { flex-wrap:wrap; }
+.tab-btn { padding:8px 12px; border-radius:8px; }
+.panel { padding:18px; border:1px solid #44341d; background:#14100a; border-radius:14px; overflow-wrap:anywhere; }
+.panel h3,.history-item h3 { font-weight:700; margin-bottom:6px; }
+.toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin:10px 0; }
+.toolbar label { display:flex; align-items:center; gap:10px; }
+.panel button,.toolbar button,#task-list button,#notice button { background:#392a14; border:1px solid #80602a; border-radius:8px; padding:8px 12px; margin:4px; color:#fef3c7; }
+button:disabled { opacity:.5; cursor:not-allowed; }
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible { outline:2px solid #fbbf24 !important; outline-offset:3px; }
+.toolbar input,.toolbar select,.panel select { background:#18130b; color:#fef3c7; border:1px solid #80602a; border-radius:8px; padding:8px; max-width:100%; }
+.helper,#task-list small,.history-item small { color:#d6c5a4; font-size:12px; }
+#notice { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); z-index:100; width:min(92vw,700px); padding:16px; background:#30240f; border:1px solid #d99924; border-radius:12px; box-shadow:0 5px 24px #0009; }
+#notice span { display:block; white-space:pre-wrap; overflow-wrap:anywhere; }
+#task-list progress { display:block; width:100%; height:14px; margin:12px 0; accent-color:#f59e0b; }
+.history-item { display:flex; align-items:center; flex-wrap:wrap; gap:14px; padding:16px; overflow-wrap:anywhere; }
+.history-item > div:first-of-type { flex:1; min-width:180px; }
+.history-item img { width:110px; height:64px; border-radius:8px; object-fit:cover; }
+#storyboard-strip { display:grid; grid-template-columns:repeat(8,minmax(0,1fr)); gap:5px; }
+#storyboard-strip .helper { grid-column:1/-1; }
+#storyboard-strip button { min-width:0; font-size:10px; }
+.storyboard-frame { display:block; width:100%; border-radius:4px; background-repeat:no-repeat; background-color:#30240f; }
+#minute-ruler { justify-content:space-between; font-size:11px; }
+#timeline-pan { width:100%; margin:12px 0; }
+@media(max-width:640px) { #storyboard-strip { grid-template-columns:repeat(4,minmax(0,1fr)); } }

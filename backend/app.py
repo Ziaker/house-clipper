@@ -43,6 +43,10 @@ class ClipRequest(BaseModel):
     normalize_audio: bool = False
     embed_subtitles: bool = False
     color_filter: Optional[str] = None
+    vertical_mode: Optional[str] = "blur"
+    fade_effect: bool = False
+    overlay_text: Optional[str] = None
+    speed: float = 1.0
 
 class FullDownloadRequest(BaseModel):
     url: str
@@ -91,7 +95,12 @@ def start_clip(req: ClipRequest):
             is_vertical=req.is_vertical,
             is_gif=req.is_gif,
             normalize_audio=req.normalize_audio,
-            embed_subtitles=req.embed_subtitles
+            embed_subtitles=req.embed_subtitles,
+            color_filter=req.color_filter,
+            vertical_mode=req.vertical_mode or "blur",
+            fade_effect=req.fade_effect,
+            overlay_text=req.overlay_text,
+            speed=req.speed or 1.0
         )
         return {"task_id": task_id, "status": "queued"}
     except Exception as e:

@@ -1,0 +1,16 @@
+# House Clipper — propostas de identidade
+
+Geradas com a ferramenta integrada de imagens (image_gen). Propostas para escolha; ainda não aplicadas aos ícones.
+
+## 01-arquitetura
+
+Use case: logo-brand. Create a premium visual identity concept board for the desktop video clipping app House Clipper. One coherent design direction: architectural minimalism. The unmistakable mark is a simple geometric HOUSE containing a large COBALT BLUE letter C. Amber/gold house frame, blue C, restrained ivory and charcoal palette. Flat vector-like crisp edges, excellent silhouette at 24px, balanced negative space. No generic play triangle, no scissors, no stock house illustration, no gradients or excessive detail. Wide editorial brand board with generous whitespace: oversized logo and 'House Clipper' clean modern wordmark in main area, below show this exact same mark as a rounded-square desktop app icon, a Windows folder with custom matching house-C emblem, and a compact dark app-header mockup. Small palette chips. Labels only '01', 'ARQUITETURA', 'House Clipper', 'APP', 'PASTA'. The C must remain clearly blue in every variant. Professional software identity presentation, sophisticated and distinctive. Render as one polished landscape board.
+
+## 02-estudio
+
+Use case: logo-brand. Create a premium visual identity concept board for desktop video clipping app House Clipper. One coherent design direction: contemporary creative studio. A bold HOUSE silhouette, simplified amber solid architectural frame, containing an unmistakable electric COBALT BLUE letter C shaped with a subtle precision-cut gap. The house and C must read instantly at tiny size. Fresh distinctive custom geometry, softly rounded but confident, editorial sans typography. Charcoal, warm ivory, amber and vivid cobalt. Mostly flat vector-like design, no clip-art, no scissors, no extra symbols or play triangle. Generous whitespace editorial board: large principal mark and 'House Clipper' wordmark; below the EXACT SAME mark as desktop rounded-square app icon, Windows folder custom emblem, dark software header example. Minimal palette chips. Labels only '02', 'ESTÚDIO', 'House Clipper', 'APP', 'PASTA'. C always blue. One polished landscape board; a visibly different mark than a conventional outline house.
+
+## 03-objeto
+
+Use case: logo-brand. Create a premium visual identity concept board for desktop video clipping app House Clipper. One coherent design direction: refined dimensional desktop object. An instantly recognizable compact HOUSE with warm amber enamel frame and a large crisp COBALT BLUE C inset into its center. Elegant subtle bevels and soft studio light, sophisticated modern software icon, no cartoon, no busy windows/chimney, no exaggerated gloss. Show a flat simplified counterpart with the same geometry for tiny toolbar usage. Wide editorial ivory/charcoal brand presentation, large hero icon and 'House Clipper' modern understated wordmark; below matching rounded-square APP icon, Windows folder custom house-C emblem, compact dark application header using the flat mark. Precise, polished, premium, consistent recognizable shape across every application. Small palette chips. Labels only '03', 'OBJETO', 'House Clipper', 'APP', 'PASTA'. C must always remain clearly blue. Landscape board.
+

@@ -48,6 +48,14 @@ class AppTests(unittest.TestCase):
         for path in ("/cookies.json", "/backend/app.py", "/config.json", "/.git/config"):
             self.assertEqual(self.client.get(path).status_code, 404)
 
+    def test_desktop_controls_loaded_after_shared_script(self):
+        html = self.client.get("/").text
+        self.assertLess(html.index('src="app.js"'), html.index('src="desktop_bootstrap.js"'))
+        self.assertLess(html.index('src="desktop_bootstrap.js"'), html.index('src="features.js"'))
+        self.assertIn('href="features.css"', html)
+        for path in ("/desktop_bootstrap.js", "/features.js", "/features.css"):
+            self.assertEqual(self.client.get(path).status_code, 200)
+
     def test_color_themes_config(self):
         for theme in ("burnt_yellow", "blue", "red", "green", "purple", "pink", "dark_amber"):
             res = self.client.post("/api/config", json={"theme": theme})
@@ -58,6 +66,14 @@ class AppTests(unittest.TestCase):
         for url in ("file:///etc/passwd", "http://127.0.0.1", "https://youtube.com.evil.example/a",
                     "https://user:pass@youtube.com/watch?v=abc", "https://youtube.com:1234/a"):
             self.assertEqual(self.client.post("/api/info", json={"url": url}).status_code, 422)
+
+    def test_supported_platforms_domains(self):
+        from backend.local_api import VideoInfoRequest
+        for url in ("https://www.youtube.com/watch?v=123", "https://x.com/user/status/123",
+                    "https://www.twitch.tv/videos/123", "https://www.tiktok.com/@user/video/123",
+                    "https://www.instagram.com/reel/123", "https://www.reddit.com/r/test/comments/123"):
+            req = VideoInfoRequest(url=url)
+            self.assertEqual(req.url, url)
 
     def test_invalid_ranges_and_quality(self):
         request = {"url": "https://youtube.com/watch?v=abcdefghijk", "start_time": 4, "end_time": 2}

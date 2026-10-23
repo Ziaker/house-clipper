@@ -234,6 +234,10 @@ function clipRequest(start = getStartSeconds(), end = getEndSeconds()) {
     normalize_audio: document.getElementById("chk-loudness")?.checked || false,
     embed_subtitles: document.getElementById("chk-subtitles")?.checked || false,
     color_filter: document.getElementById("clip-color-filter")?.value !== "none" ? document.getElementById("clip-color-filter")?.value : null,
+    vertical_mode: document.getElementById("clip-vertical-mode")?.value || "blur",
+    fade_effect: document.getElementById("chk-fade")?.checked || false,
+    overlay_text: document.getElementById("clip-overlay-text")?.value.trim() || null,
+    speed: parseFloat(document.getElementById("clip-export-speed")?.value || 1.0),
     title: document.getElementById("clip-custom-title").value.trim() || loadedClip?.title || null};
 }
 function addSegment() {

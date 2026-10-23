@@ -59,7 +59,7 @@ def main():
             background_color="#0b0906"
         )
         opened_window = True
-        webview.start()
+        webview.start(icon=str(BASE_DIR / "house.ico"))
     except Exception as e:
         print("Aviso: Janela nativa indisponível, abrindo no navegador padrão:", e)
         opened_window = False

@@ -745,6 +745,10 @@ async function startClipping() {
   const embedSubtitles = document.getElementById("chk-subtitles").checked;
   const colorFilterEl = document.getElementById("clip-color-filter");
   const colorFilter = (colorFilterEl && colorFilterEl.value !== "none") ? colorFilterEl.value : null;
+  const verticalMode = document.getElementById("clip-vertical-mode") ? document.getElementById("clip-vertical-mode").value : "blur";
+  const fadeEffect = document.getElementById("chk-fade") ? document.getElementById("chk-fade").checked : false;
+  const overlayText = document.getElementById("clip-overlay-text") ? document.getElementById("clip-overlay-text").value.trim() : null;
+  const exportSpeed = document.getElementById("clip-export-speed") ? parseFloat(document.getElementById("clip-export-speed").value || 1.0) : 1.0;
 
   if (!hasBackend) {
     openWebModalForClip(currentVideoUrl, start, end, isAudio, isVertical, isGif);
@@ -770,6 +774,10 @@ async function startClipping() {
         normalize_audio: normalizeAudio,
         embed_subtitles: embedSubtitles,
         color_filter: colorFilter,
+        vertical_mode: verticalMode,
+        fade_effect: fadeEffect,
+        overlay_text: overlayText || null,
+        speed: exportSpeed,
         title: customTitle || null
       })
     });
@@ -858,12 +866,19 @@ async function loadFullVideo() {
 
     const isYouTube = url.includes("youtu");
     const isTwitter = url.includes("twitter.com") || url.includes("x.com");
+    const isTwitch = url.includes("twitch.tv");
+    const isTikTok = url.includes("tiktok.com");
+    const isInstagram = url.includes("instagram.com");
+    const isReddit = url.includes("reddit.com") || url.includes("redd.it");
 
     let title = "Vídeo Detectado";
-    let author = isTwitter ? "Post no Twitter/X" : "Canal do YouTube";
+    let author = "Criador";
     let thumb = "";
+    let platform = "web";
 
     if (isYouTube) {
+      platform = "youtube";
+      author = "Canal do YouTube";
       const id = extractYouTubeId(url);
       thumb = id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : "";
       try {
@@ -872,8 +887,30 @@ async function loadFullVideo() {
         if (oe.author_name) author = oe.author_name;
       } catch (e) {}
     } else if (isTwitter) {
+      platform = "twitter";
+      author = "Post no Twitter / X";
       thumb = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=60";
       title = "Vídeo do Twitter / X";
+    } else if (isTwitch) {
+      platform = "twitch";
+      author = "Canal na Twitch";
+      thumb = "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&auto=format&fit=crop&q=60";
+      title = "Transmissão / Clipe da Twitch";
+    } else if (isTikTok) {
+      platform = "tiktok";
+      author = "Criador no TikTok";
+      thumb = "https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=600&auto=format&fit=crop&q=60";
+      title = "Vídeo do TikTok";
+    } else if (isInstagram) {
+      platform = "instagram";
+      author = "Post / Reel no Instagram";
+      thumb = "https://images.unsplash.com/photo-1611262588024-d12430b98920?w=600&auto=format&fit=crop&q=60";
+      title = "Reel / Vídeo do Instagram";
+    } else if (isReddit) {
+      platform = "reddit";
+      author = "Comunidade no Reddit";
+      thumb = "https://images.unsplash.com/photo-1579869847514-7c1a19d2d2ad?w=600&auto=format&fit=crop&q=60";
+      title = "Vídeo do Reddit";
     }
 
     currentFullVideoData = {
@@ -881,7 +918,7 @@ async function loadFullVideo() {
       uploader: author,
       duration_formatted: "--:--",
       thumbnail: thumb,
-      platform: isYouTube ? "youtube" : (isTwitter ? "twitter" : "web"),
+      platform: platform,
       url: url
     };
     renderFullVideoCard(currentFullVideoData);
@@ -912,6 +949,18 @@ function renderFullVideoCard(data) {
   } else if (data.platform === "twitter") {
     badge.className = "absolute top-2 left-2 px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow bg-sky-500 text-white";
     badge.innerHTML = `<i data-lucide="twitter" class="w-3.5 h-3.5"></i> Twitter / X`;
+  } else if (data.platform === "twitch") {
+    badge.className = "absolute top-2 left-2 px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow bg-purple-600 text-white";
+    badge.innerHTML = `<i data-lucide="tv" class="w-3.5 h-3.5"></i> Twitch`;
+  } else if (data.platform === "tiktok") {
+    badge.className = "absolute top-2 left-2 px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow bg-pink-600 text-white";
+    badge.innerHTML = `<i data-lucide="smartphone" class="w-3.5 h-3.5"></i> TikTok`;
+  } else if (data.platform === "instagram") {
+    badge.className = "absolute top-2 left-2 px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow bg-gradient-to-r from-amber-500 via-pink-600 to-purple-600 text-white";
+    badge.innerHTML = `<i data-lucide="camera" class="w-3.5 h-3.5"></i> Instagram`;
+  } else if (data.platform === "reddit") {
+    badge.className = "absolute top-2 left-2 px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow bg-orange-600 text-white";
+    badge.innerHTML = `<i data-lucide="message-square" class="w-3.5 h-3.5"></i> Reddit`;
   } else {
     badge.className = "absolute top-2 left-2 px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow bg-[#261d10] text-amber-200";
     badge.innerHTML = `<i data-lucide="globe" class="w-3.5 h-3.5"></i> Web`;
@@ -973,6 +1022,8 @@ function toggleQualitySelect() {
   const isVertical = format === "vertical";
 
   document.getElementById("clip-quality-container").style.display = (isAudio || isGif) ? "none" : "block";
+  const vertMode = document.getElementById("clip-vertical-mode-container");
+  if (vertMode) vertMode.classList.toggle("hidden", !isVertical);
   
   // Atualiza texto do botão
   const btnText = document.getElementById("btn-download-clip-text");

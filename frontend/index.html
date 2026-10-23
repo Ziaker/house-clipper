@@ -35,6 +35,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="assets/identity/house-clipper.ico" sizes="any">
+  <link rel="icon" href="assets/identity/app-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/identity/app-icon.png">
+  <link rel="stylesheet" href="assets/identity/identity.css">
 </head>
 <body id="app-body" class="bg-[#0b0906] text-amber-50 min-h-screen flex flex-col font-sans selection:bg-amber-600 selection:text-white transition-colors duration-200">
 
@@ -47,12 +51,7 @@
       <!-- Logo + Ícone: Casa Amarela Queimada com C Azul dentro -->
       <div class="flex items-center gap-3.5">
         <div id="header-house-logo" class="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-[#f59e0b] via-[#d97706] to-[#b45309] p-0.5 shadow-lg shadow-amber-900/40 flex items-center justify-center transition-all duration-300">
-          <svg class="w-10 h-10" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M50 12L15 42H26V86H74V42H85L50 12Z" fill="#18130a" stroke="#fbbf24" stroke-width="4.5" stroke-linejoin="round"/>
-            <path d="M50 17L22 42H78L50 17Z" fill="#d97706"/>
-            <path d="M62 46C59.5 43.5 56 42 51.5 42C43 42 37 48.5 37 57C37 65.5 43 72 51.5 72C56 72 59.5 70.5 62 68L57.5 63C55.8 64.5 53.8 65.5 51.5 65.5C46.8 65.5 43.5 61.8 43.5 57C43.5 52.2 46.8 48.5 51.5 48.5C53.8 48.5 55.8 49.5 57.5 51L62 46Z" 
-                  fill="#2563eb" stroke="#38bdf8" stroke-width="1.2"/>
-          </svg>
+          <img src="assets/identity/app-icon.svg" alt="House Clipper — Estúdio" width="48" height="48">
         </div>
 
         <div>
@@ -434,6 +433,16 @@
                 </select>
               </div>
 
+              <div id="clip-vertical-mode-container" class="hidden sm:col-span-3">
+                <label class="text-xs text-amber-200/80 font-medium block mb-1">Enquadramento 9:16</label>
+                <select id="clip-vertical-mode" class="w-full bg-[#0c0a07] border border-[#382b17] rounded-xl px-2.5 py-2 text-xs text-amber-200 font-medium focus:outline-none focus:border-amber-500">
+                  <option value="blur">✨ Fundo Desfocado (Blur)</option>
+                  <option value="crop_center">🔍 Zoom Cheio (Centro)</option>
+                  <option value="crop_left">⬅️ Zoom Cheio (Esquerda)</option>
+                  <option value="crop_right">➡️ Zoom Cheio (Direita)</option>
+                </select>
+              </div>
+
               <div id="clip-filter-container" class="sm:col-span-3">
                 <label class="text-xs text-amber-200/80 font-medium block mb-1">Filtro de Cor no Vídeo</label>
                 <select id="clip-color-filter" class="w-full bg-[#0c0a07] border border-[#382b17] rounded-xl px-2.5 py-2 text-xs text-amber-200 font-medium focus:outline-none focus:border-amber-500">
@@ -457,11 +466,35 @@
               </div>
             </div>
 
+            <!-- Linha Adicional: Marca d'água / Texto no Vídeo e Velocidade de Exportação -->
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end pt-1">
+              <div class="sm:col-span-7">
+                <label class="text-xs text-amber-200/80 font-medium block mb-1">✍️ Texto / Marca d'água no Vídeo (Opcional)</label>
+                <input id="clip-overlay-text" type="text" placeholder="Ex: @meucanal ou PARTE 1" 
+                       class="w-full px-3 py-2 bg-[#0c0a07] border border-[#382b17] rounded-xl text-xs text-amber-50 placeholder-amber-300/20 focus:outline-none focus:border-amber-500">
+              </div>
+
+              <div class="sm:col-span-5">
+                <label class="text-xs text-amber-200/80 font-medium block mb-1">⚡ Velocidade do Clipe Exportado</label>
+                <select id="clip-export-speed" class="w-full bg-[#0c0a07] border border-[#382b17] rounded-xl px-2.5 py-2 text-xs text-amber-200 font-medium focus:outline-none focus:border-amber-500">
+                  <option value="1.0">1.0x (Velocidade Normal)</option>
+                  <option value="1.15">1.15x (Shorts Rápido - Retenção Alta)</option>
+                  <option value="1.25">1.25x (Acelerado +25%)</option>
+                  <option value="0.8">0.8x (Câmera Lenta Suave)</option>
+                </select>
+              </div>
+            </div>
+
             <!-- Checkboxes de Melhorias Avançadas (Equalização e Legendas) -->
             <div class="flex flex-wrap items-center gap-4 pt-1 text-xs">
               <label class="flex items-center gap-2 cursor-pointer text-amber-200/80 hover:text-amber-100 select-none">
                 <input id="chk-loudness" type="checkbox" class="w-4 h-4 accent-amber-500 rounded cursor-pointer">
                 <span>🔊 <strong>Normalizar Volume</strong> (Loudness Equalizer via FFmpeg)</span>
+              </label>
+
+              <label class="flex items-center gap-2 cursor-pointer text-amber-200/80 hover:text-amber-100 select-none">
+                <input id="chk-fade" type="checkbox" class="w-4 h-4 accent-amber-500 rounded cursor-pointer">
+                <span>🎞️ <strong>Fade In & Out</strong> (Transição Suave)</span>
               </label>
 
               <label id="lbl-subtitles" class="flex items-center gap-2 cursor-pointer text-amber-200/80 hover:text-amber-100 select-none">
@@ -497,19 +530,29 @@
         <div class="max-w-3xl">
           <div class="flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider mb-1.5">
             <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
-            YouTube & Twitter / X
+            YouTube, Twitter/X, Twitch, TikTok, Instagram & Reddit
           </div>
           <h2 class="text-xl sm:text-2xl font-extrabold tracking-tight text-white mb-1.5">
             Baixar Vídeo Completo
           </h2>
           <p class="text-xs sm:text-sm text-amber-100/70 mb-4">
-            Cole links do YouTube ou tweets/posts do Twitter (X) com vídeo para baixar em alta qualidade ou converter para MP3.
+            Baixe vídeos e áudios em alta qualidade das suas redes favoritas:
+          </p>
+          <div class="flex flex-wrap items-center gap-1.5 mb-3 text-[10px] font-bold">
+            <span class="px-2 py-0.5 rounded-md bg-red-600/30 text-red-300 border border-red-500/40">YouTube</span>
+            <span class="px-2 py-0.5 rounded-md bg-sky-500/30 text-sky-300 border border-sky-500/40">Twitter / X</span>
+            <span class="px-2 py-0.5 rounded-md bg-purple-600/30 text-purple-300 border border-purple-500/40">Twitch</span>
+            <span class="px-2 py-0.5 rounded-md bg-pink-600/30 text-pink-300 border border-pink-500/40">TikTok</span>
+            <span class="px-2 py-0.5 rounded-md bg-pink-500/20 text-pink-200 border border-pink-500/40">Instagram</span>
+            <span class="px-2 py-0.5 rounded-md bg-orange-600/30 text-orange-300 border border-orange-500/40">Reddit</span>
+          </div>
+          <p class="hidden">
           </p>
 
           <div class="flex flex-col sm:flex-row gap-2.5">
             <div class="relative flex-1">
               <i data-lucide="link" class="w-4 h-4 absolute left-3.5 top-3.5 text-amber-500/70"></i>
-              <input id="full-url-input" type="text" placeholder="Cole o link do YouTube ou Twitter/X (ex: https://x.com/.../status/...)" 
+              <input id="full-url-input" type="text" placeholder="Cole o link (YouTube, Twitter/X, Twitch, TikTok, Instagram ou Reddit)..." 
                      class="w-full pl-10 pr-24 py-3 bg-[#0c0a07] border border-[#382b17] rounded-xl text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 text-amber-50 placeholder-amber-200/30 transition">
               <button onclick="pasteClipboard('full-url-input')" class="absolute right-2.5 top-2.5 px-2.5 py-1 text-xs font-medium text-amber-300 hover:text-white bg-[#1e170d] hover:bg-[#2b2112] rounded-lg border border-[#3d2f18] transition flex items-center gap-1">
                 <i data-lucide="clipboard" class="w-3 h-3 text-amber-400"></i> Colar

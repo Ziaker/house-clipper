@@ -29,3 +29,7 @@ config.json
 # Credenciais locais e caches de testes
 cookies.json
 .pytest_cache/
+
+# Backup local da identidade anterior
+/design/identity/previous/
+desktop.ini

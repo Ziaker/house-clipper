@@ -2,11 +2,11 @@
 
 # 🏠 House Clipper
 
-### O estúdio moderno para clipar trechos do YouTube sem baixar o vídeo inteiro e baixar vídeos completos do YouTube & Twitter (X).
+### O estúdio moderno para clipar trechos do YouTube sem baixar o vídeo inteiro e baixar vídeos completos de YouTube, Twitter (X), Twitch, TikTok, Instagram e Reddit.
 
 [![Acessar no Navegador](https://img.shields.io/badge/🌐_Acessar_Online-GitHub_Pages-f59e0b?style=for-the-badge)](https://ziaker.github.io/house-clipper/)
 [![Baixar para Windows](https://img.shields.io/badge/💻_Baixar_App_Windows-HouseClipper.exe-2563eb?style=for-the-badge)](https://github.com/Ziaker/house-clipper/raw/main/HouseClipper.exe)
-[![Versão](https://img.shields.io/badge/Versão-v1.3.0-emerald?style=for-the-badge)](#)
+[![Versão](https://img.shields.io/badge/Versão-v1.4.0-emerald?style=for-the-badge)](#)
 [![Licença Open Source](https://img.shields.io/badge/Código_Aberto-100%25_Auditável-green?style=for-the-badge)](#)
 
 ---
@@ -28,51 +28,59 @@ O **House Clipper** foi desenvolvido seguindo as melhores práticas de transpar�
 - 🟢 **Zero Telemetria & Sem Coleta de Dados**: O aplicativo **não coleta, não rastreia e não envia** nenhum dado de uso, URLs pesquisadas, vídeos baixados ou informações pessoais para servidores de terceiros.
 - 🟢 **Execução Segura em Localhost**: O servidor desktop local roda exclusivamente em `127.0.0.1` (localhost), garantindo que ninguém na sua rede Wi-Fi ou na internet possa acessar o seu aplicativo.
 - 🟢 **Livre de Anúncios, Adware e Mineradores**: Interface 100% limpa, sem anúncios intrusivos, sem redirecionamentos suspeitos e sem scripts maliciosos.
-- 🟢 **Privacidade dos seus Cookies**: O arquivo `cookies.json` é utilizado apenas localmente na sua máquina para comunicar com o YouTube/X. O repositório possui proteção no `.gitignore` para que nenhum dado ou histórico local de download seja compartilhado.
+- 🟢 **Privacidade dos seus Cookies**: O arquivo `cookies.json` é utilizado apenas localmente na sua máquina para comunicar com os serviços suportados. O repositório possui proteção no `.gitignore` para que nenhum dado ou histórico local de download seja compartilhado.
 - 🟢 **Sandbox no Navegador**: Ao utilizar via GitHub Pages, o aplicativo roda sob a proteção e isolamento nativo de segurança (sandbox) do seu próprio navegador web via conexão criptografada HTTPS.
 
 ---
 
-## ✨ Recursos de Clipagem & QoLs Visuais (v1.3.0)
+## ✨ Recursos de Clipagem, Multi-Plataforma & Edição Avançada (v1.4.0)
 
-1. **✂️ Clipagem Visual com Régua de Minutos & Balão Flutuante (Hover Time Bubble)**:
+1. **🌐 Suporte a Múltiplas Redes Sociais (Downloads Completos & Clipes)**:
+   - Suporte expandido nativo para **YouTube**, **Twitter / X**, **Twitch** (VODs e clipes), **TikTok**, **Instagram** (Reels e posts) e **Reddit**.
+   - Validação inteligente e detecção automática do provedor com exibição de badges na interface.
+
+2. **✂️ Clipagem Visual com Régua de Minutos & Balão Flutuante (Hover Time Bubble)**:
    - Divisões clicáveis de minuto a minuto (`00:00`, `01:00`, `02:00`...).
    - **Balão flutuante animado** e linha vertical guia em neon dourado que acompanham o mouse na timeline mostrando o minuto e segundo exatos em tempo real.
    - Seletores diretos de minutos e segundos com ajuste fino (`-1s`, `-0.2s`, `+0.2s`, `+1s`).
    - Pré-visualização do corte em loop para você ter certeza antes de baixar.
 
-2. **🌊 Onda Sonora Visual Dinâmica na Timeline (Organic Waveform Bars)**:
+3. **📱 Modos Avançados de Conversão 9:16 (Shorts / Reels / TikTok)**:
+   - Quatro modos de enquadramento inteligente para celular:
+     - **Fundo Desfocado (Blur)**: O vídeo original 16:9 é centralizado e as barras superior e inferior são preenchidas com o fundo desfocado estético.
+     - **Recorte Centralizado (Crop Center)**: Preenchimento vertical 1080x1920 com foco total no centro.
+     - **Foco à Esquerda (Crop Left)**: Ideal para vídeos com foco ou câmera no canto esquerdo.
+     - **Foco à Direita (Crop Right)**: Ideal para gameplays ou podcasts com foco no lado direito.
+
+4. **✨ Transição Suave Fade In & Fade Out**:
+   - Aplica transições de entrada e saída suaves (vídeo e áudio) para um encerramento profissional sem cortes secos.
+
+5. **✍️ Queima de Texto / Marca d'Água (Overlay Text)**:
+   - Adicione seu arroba, título ou créditos gravados diretamente no vídeo via FFmpeg `drawtext` com caixa protetora semitransparente.
+
+6. **⚡ Controle de Velocidade do Clipe Exportado**:
+   - Ajuste o ritmo do clipe gerado entre **0.8x** (câmera lenta suave), **1.0x** (normal), **1.15x** (dinâmico para retenção) ou **1.25x** (rápido), com preservação e ajuste automático do tom de áudio (`atempo`).
+
+7. **🌊 Onda Sonora Visual Dinâmica na Timeline (Organic Waveform Bars)**:
    - Barras de frequência e amplitude de áudio geradas dinamicamente na faixa da timeline.
-   - O trecho selecionado acende com brilho dourado vívido enquanto o restante fica suavemente atenuado, no estilo de editores profissionais.
+   - O trecho selecionado acende com brilho vívido na cor do tema enquanto o restante fica suavemente atenuado.
 
-3. **📌 Mini-Player Flutuante Sticky (Picture-in-Picture)**:
-   - Ao rolar a página para baixo para configurar os downloads ou gerenciar o histórico, o player de vídeo se desprende suavemente e vira um elegante mini-player no canto inferior direito com badge `Mini-Player PiP`, permitindo continuar assistindo sem perder o foco.
+8. **📌 Mini-Player Flutuante Sticky (Picture-in-Picture)**:
+   - Ao rolar a página para baixo para configurar os downloads ou gerenciar o histórico, o player de vídeo se desprende suavemente e vira um elegante mini-player no canto inferior direito com badge `Mini-Player PiP`.
 
-4. **📐 Máscaras Visuais de Enquadramento no Player (Overlay 9:16 e 1:1)**:
+9. **📐 Máscaras Visuais de Enquadramento no Player (Overlay 9:16 e 1:1)**:
    - Guias semitransparentes com badges informativos sobre o vídeo para você checar se o momento principal ficará perfeito para Reels/Shorts ou posts quadrados.
 
-5. **✨ Pulso Neon no Logo da Casa & Shimmer Dourado na Barra de Progresso**:
-   - O logo da casa com o 'C' azul ganha um efeito de pulso neon dourado enquanto downloads ou tarefas de renderização estão ativas, e a barra de progresso exibe uma animação shimmer metálica.
+10. **🎞️ Gerador de GIF Animado Otimizado com 1 Clique**:
+    - Exporte trechos curtos de 2 a 10 segundos diretamente como `.GIF` leve e nítido para enviar no Discord, Telegram ou WhatsApp.
 
-6. **📱 Conversão Instantânea 9:16 com Fundo Desfocado (Shorts / TikTok / Reels)**:
-   - Converte vídeos 16:9 diretamente para o formato vertical de celular (1080x1920) com barras superior e inferior preenchidas com **blur suave de fundo**, pronto para postar nas redes sociais.
+11. **🔊 Normalização de Áudio Inteligente (Loudness Equalizer)**:
+    - Filtro FFmpeg `loudnorm` opcional com 1 clique que equilibra trechos muito baixos ou estourados para o padrão de transmissão EBU R128.
 
-7. **🎞️ Gerador de GIF Animado Otimizado com 1 Clique**:
-   - Exporte trechos curtos de 2 a 10 segundos diretamente como `.GIF` leve e nítido para enviar no Discord, Telegram ou WhatsApp.
+12. **💬 Embutir Legendas Automáticas no Clipe**:
+    - Grava legendas diretamente no vídeo cortado quando disponíveis.
 
-8. **🔊 Normalização de Áudio Inteligente (Loudness Equalizer)**:
-   - Filtro FFmpeg `loudnorm` opcional com 1 clique que equilibra trechos muito baixos ou estourados para o padrão de transmissão EBU R128.
-
-9. **💬 Embutir Legendas Automáticas no Clipe**:
-   - Grava legendas diretamente no vídeo cortado.
-
-10. **🏎️ Controle de Velocidade no Player**:
-    - Botões rápidos (`1x`, `1.25x`, `1.5x`, `2x`) para acelerar vídeos longos e achar o momento exato em segundos.
-
-11. **📦 Arrastar e Soltar Direto para Outros Apps (Drag & Drop)**:
-    - Arraste os cards de clipes salvos no histórico diretamente para o Discord, Telegram, WhatsApp Web, Premiere ou pastas do Windows.
-
-12. **🎨 Filtros de Cores da Interface & Vídeo (Amarelo, Azul, Vermelho, Verde, Roxo, Rosa)**:
+13. **🎨 Filtros de Cores da Interface & Vídeo (Amarelo, Azul, Vermelho, Verde, Roxo, Rosa)**:
     - Seletor de 6 paletas neon completas no topo da tela:
       - 🟡 **Amarelo Queimado / Dourado** *(Clássico House Clipper)*
       - 🔵 **Azul Neon** *(Cyber Cobalt)*
@@ -81,13 +89,12 @@ O **House Clipper** foi desenvolvido seguindo as melhores práticas de transpar�
       - 🟣 **Roxo Ametista** *(Royal Cyberpunk)*
       - 🌸 **Rosa Choque** *(Neon Vaporwave)*
     - Todos os componentes, sliders, brilhos neon do logo, waveforms e menus transformam-se instantaneamente na cor escolhida.
-    - Opção adicional de aplicar filtros de color grading nos próprios clipes exportados via FFmpeg.
 
-13. **🌙 Modo Noturno Amarelo Escuro (*Deep Night Amber*)**:
+14. **🌙 Modo Noturno Amarelo Escuro (*Deep Night Amber*)**:
     - Alterne com 1 clique entre o tema ativo e o **Noturno Escuro** com fundo preto profundo para descanso visual prolongado.
 
-14. **🍪 Suporte a Cookies (`cookies.json`)**:
-    - Suporte a cookies em formato JSON para acessar vídeos com restrição de idade ou que exigem login.
+15. **📦 Arrastar e Soltar Direto para Outros Apps (Drag & Drop)**:
+    - Arraste os cards de clipes salvos no histórico diretamente para o Discord, Telegram, WhatsApp Web, Premiere ou pastas do Windows.
 
 ---
 

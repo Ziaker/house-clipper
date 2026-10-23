@@ -103,11 +103,11 @@ def run(request):
     path = Path(final_paths[-1]).resolve()
     if path.parent != output:
         raise ValueError("Destino do arquivo inválido.")
-    if not audio and any(request.get(key) for key in ("is_vertical", "normalize_audio", "is_gif", "color_filter")):
+    if not audio and any(request.get(key) for key in ("is_vertical", "normalize_audio", "is_gif", "color_filter", "fade_effect", "overlay_text", "speed")):
         from backend.downloader import process_advanced_effects
         emit(status="processing", progress=None, message="Aplicando opções de exportação…")
-        path = Path(process_advanced_effects(str(path), request.get("is_vertical", False),
-                    request.get("normalize_audio", False), request.get("is_gif", False), request.get("color_filter"))).resolve()
+        path = Path(process_advanced_effects(str(path), is_vertical=request.get("is_vertical", False), normalize_audio=request.get("normalize_audio", False), export_gif=request.get("is_gif", False), color_filter=request.get("color_filter"), vertical_mode=request.get("vertical_mode", "blur"), fade_effect=request.get("fade_effect", False), overlay_text=request.get("overlay_text"), speed=float(request.get("speed", 1.0) or 1.0))).resolve()
+
     elif audio and request.get("normalize_audio"):
         normalized = path.with_stem(path.stem + "_normalized")
         subprocess.run(["ffmpeg", "-v", "error", "-i", str(path), "-af", "loudnorm",

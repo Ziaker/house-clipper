@@ -46,11 +46,11 @@ class VideoInfoRequest(BaseModel):
     def validate_url(cls, value):
         parsed = urlsplit(value)
         host = (parsed.hostname or "").lower()
-        domains = ("youtube.com", "youtu.be", "twitter.com", "x.com")
+        domains = ("youtube.com", "youtu.be", "twitter.com", "x.com", "twitch.tv", "tiktok.com", "instagram.com", "reddit.com")
         if (parsed.scheme not in ("https", "http") or parsed.username or parsed.password
                 or parsed.port not in (None, 80, 443)
                 or not any(host == d or host.endswith("." + d) for d in domains)):
-            raise ValueError("Use um link válido do YouTube ou Twitter/X.")
+            raise ValueError("Use um link válido suportado (YouTube, Twitter/X, Twitch, TikTok, Instagram ou Reddit).")
         return value
 
 
@@ -196,7 +196,7 @@ def update_cookies(req: CookiesUpdateRequest):
             if not isinstance(cookie, dict) or not isinstance(cookie.get("name"), str) or not isinstance(cookie.get("value"), str):
                 raise ValueError("Cada cookie precisa de nome e valor em texto.")
             domain = cookie.get("domain", ".youtube.com").lstrip(".")
-            if not any(domain == d or domain.endswith("." + d) for d in ("youtube.com", "google.com", "twitter.com", "x.com")):
+            if not any(domain == d or domain.endswith("." + d) for d in ("youtube.com", "google.com", "twitter.com", "x.com", "twitch.tv", "tiktok.com", "instagram.com", "reddit.com")):
                 raise ValueError("O arquivo contém cookies de outro serviço.")
             if any(c in str(v) for v in cookie.values() for c in ("\n", "\r", "\t")):
                 raise ValueError("Cookie contém caracteres inválidos.")
@@ -258,6 +258,8 @@ def desktop_page():
     source = (frontend_dir / "index.html").read_text(encoding="utf-8")
     if 'src="features.js"' not in source:
         source = source.replace("</body>", '<script src="features.js"></script></body>')
+    if 'src="desktop_bootstrap.js"' not in source:
+        source = source.replace('<script src="features.js">', '<script src="desktop_bootstrap.js"></script><script src="features.js">')
     source = source.replace("</head>", '<link rel="stylesheet" href="features.css"></head>')
     return source
 
